@@ -1,0 +1,6 @@
+#.gitignore
+# for chess
+log/*
+*.properties
+*.pyc
+src/_OLD/*
