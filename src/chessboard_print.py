@@ -36,7 +36,7 @@ class ChessboardPrint:
                 col.append(None)
             pb_squares.append(col)
         
-        pss = self.board.get_board_pieces()
+        pss = self.board.get_pieces()
         for ps in pss:
             if not (match_ps := re.match(r'^(\w)(\w)(\w)$', ps)):   # Ke1
                 raise Exception(f"ps:{ps} not p file rank")

@@ -101,7 +101,7 @@ class ChessboardDisplay:
             default: use board.setting
         """
         if piece_squares is None:
-            piece_squares = self.board.get_board_pieces()
+            piece_squares = self.board.get_pieces()
         for ps in piece_squares:
             self.display_piece_square(ps)
 
@@ -142,18 +142,18 @@ if __name__ == '__main__':
     
         
     SlTrace.clearFlags()
-    test = 2
-    if test == 1:
-        cb = Chessboard(pieces='FEN:rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
-        cbp = ChessboardPrint(cb)
-        cbp.display_board()
-        cbd = ChessboardDisplay(cb)
-        cbd.display_board()
+    mw1 = tk.Tk()   # Controlling window
+    cb1 = Chessboard(pieces='FEN:rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+    cbp1 = ChessboardPrint(cb1)
+    cbp1.display_board()
+    cbd1 = ChessboardDisplay(cb1)
+    cbd1.display_board(mw1)
     
-    if test == 2:
-        cb = Chessboard(pieces=':Kc1Qe1kh7 w')
-        cbp = ChessboardPrint(cb)
-        cbp.display_board()
-        cbd = ChessboardDisplay(cb)
-        cbd.display_board()
-    cbd.mainloop()
+    mw2 = tk.Toplevel()     # Subsequent window
+    cb2 = Chessboard(pieces=':Kc1Qe1kh7 w')
+    cbp2 = ChessboardPrint(cb2)
+    cbp2.display_board()
+    cbd2 = ChessboardDisplay(cb2)
+    cbd2.display_board(mw2)
+    
+    cbd1.mainloop()
