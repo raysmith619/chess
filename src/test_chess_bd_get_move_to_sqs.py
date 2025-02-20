@@ -64,11 +64,23 @@ cm.assert_sqs(sqs=B_h8_r, sq_only="g7 f6", sq_out="h8 e5 d4 c3 b2 a1")
 
 cm.do_test(desc="Check B in h1")
 cm.clear_board()
-ba8 = cm.get_move_to_sqs('B', orig_sq='h1')
-cm.assert_sqs(sqs=ba8, sq_in="a8 b7 c6 d5 e4 f3 g2", sq_out="h1")
+Bh1 = cm.get_move_to_sqs('B', orig_sq='h1')
+cm.assert_sqs(sqs=Bh1, sq_only="a8 b7 c6 d5 e4 f3 g2")
 
 cm.do_test(desc2="   add P at e4")
 cm.place_piece("N", "e4")
+Bh1_Ne4 = cm.get_move_to_sqs('B', orig_sq='h1')
+cm.assert_sqs(sqs=Bh1_Ne4, sq_only="g2 f3")    
+
+
+cm.do_test(desc="Check Q in a1")
+cm.clear_board()
+Qa1 = cm.get_move_to_sqs('Q', 'a1')
+cm.assert_sqs(sqs=Qa1, sq_only="""
+    a2,a3,a4,a5,a6,a7,a8
+    b2,c3,d4,e5,f6,g7,h8
+    b1,c1,d1,e1,f1,g1,h1""")
+
 
 cm.do_test(desc="Check r in a1")
 cm.clear_board()
@@ -79,7 +91,8 @@ cm.do_test(desc2="    add p a3 P c1")
 cm.place_piece('p', 'a3')
 cm.place_piece('P', 'c1')
 ra1 = cm.get_move_to_sqs('r', 'a1')
-cm.assert_sqs(sqs=ra1, sq_in="a2 b1 c1", sq_out="a3 d2")
+cm.assert_sqs(sqs=ra1, sq_only="a2 b1 c1")
+
 
 
 cm.do_test(desc="Check P in e2")
@@ -158,6 +171,7 @@ if assert_fail_count > 0:
     if assert_fail_count % 2 == 0:
         err_count_str += "S"
     SlTrace.lg(err_count_str)
+    SlTrace.lg(f"First fail: {cm.get_assert_first_fail()}")
 else:
     SlTrace.lg("NO FAILS")
 

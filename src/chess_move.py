@@ -126,8 +126,20 @@ class ChessMove:
         
         if len(orig_sqs) < 1:
             return None         # No takers
-        
-        # TBD - get choice, besure it is unique
+        if len(piece_choice) == 1:
+            orig_sqs_2 = []
+            for sq in orig_sqs:
+                if sq.startswith(piece_choice):
+                    orig_sqs_2.append(sq)
+            if len(orig_sqs_2) == 1:
+                return orig_sqs_2[0]
+            
+            if len(orig_sqs_2) > 1:
+                SlTrace.lg(f"Ambiguous orig_sq: {orig_sqs_2}"
+                           f" for {self.spec}")
+                return None
+            
+        # TBD - Handle rank and double piece_choice
         return None
             
         

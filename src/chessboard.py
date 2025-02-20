@@ -160,11 +160,26 @@ class Chessboard:
         """ Tell if piece, originating at this square
         has ever been moved
         :sq: origin square
+        :returns: privious value of is_moved
         """
         if sq in self.moved_pieces_d:
             return True
         
         return False
+    
+    def set_as_moved(self, sq, is_moved=True):
+        """ Set if piece, originating at this square's
+        moved state
+        :sq: origin square
+        :returns: privious value of is_moved
+        """
+        prev_moved = self.is_moved(sq=sq)
+        if (is_moved):
+            self.moved_pieces_d[sq] = True
+        else:
+            if sq in self.moved_pieces_d:
+                del self.moved_pieces_d[sq]         
+        return prev_moved
     
     def set_as_moved(self, sq):
         """ Set piece, originating at this sq
@@ -172,7 +187,7 @@ class Chessboard:
         square the original piece has to have moved
         """
         self.moded_pieces_d = sq
-
+        
     def clear_assert_test_count(self):
         """ Clear assert fail count
         """
@@ -206,12 +221,19 @@ class Chessboard:
         """ Clear assert fail count
         """
         self.assert_fail_count = 0
-
+        self.assert_first_fail = None
+        
     def get_assert_fail_count(self):
         """ Get test fail count - numbers of test errors
         """
         return self.assert_fail_count
-        
+
+    def get_assert_first_fail(self):
+        """ Get first failed test no + fail msg
+        :return: fail test no
+        """
+        return self.assert_first_fail
+            
     def set_assert_fail_max(self, max=10):
         """ Set maximum assert_fail_reports till
             exception raised
@@ -225,6 +247,11 @@ class Chessboard:
         """
         self.assert_fail_count += 1
         SlTrace.lg(f"{self.assert_fail_count}: {err}")
+        if self.assert_first_fail is None:
+            self.assert_first_fail = f"Test {self.get_assert_test_count()}"
+            self.assert_first_fail += f" {self.assert_test_desc}"
+            self.assert_first_fail += f" {err}"
+            
         if self.assert_fail_count >= self.assert_fail_count_max:
             raise Exception(f"Assert fail maximum"
                             f"({self.assert_fail_count_max}) reached"
@@ -272,7 +299,6 @@ class Chessboard:
                 keeps count self.assert_fail_count
                 raises exception when assert_fail_count_max reached
             """
-        self.start_assert_test()
         if sq_only is not None:
             SlTrace.lg(f"sq_only: {sq_only}", "test_strings")
             SlTrace.lg(f"     in: {sqs}", "found_sqs")
@@ -280,13 +306,15 @@ class Chessboard:
                 sq_only = re.split(r'[,\s]\s*', sq_only)
             sqs_in = {}
             for sq in sq_only:
+                if sq == '':
+                    continue    # ignore empties
                 sqs_in[sq] = 'x'
             sqs_all = self.all_sqs()
             sqs_out = {}
             for sq in sqs_all:
                 if sq not in sqs_in:    # create set complement
                     sqs_out[sq] = 'z'
-            sq_in = sq_only
+            sq_in = list(sqs_in)
             sq_out = list(sqs_out)
             
         if sq_in is not None:
@@ -719,20 +747,30 @@ class Chessboard:
         self.board_setting[sq] = piece
         return prev_piece
     
-    def make_move(self, orig_sq=None, dest_sq=None,
+    def make_move(self,
+                  orig_sq=None,
+                  prev_orig_sq_moved=None,
+                  dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
                   update=True,
-                  orig2_sq=None, dest2_sq=None,
+                  orig2_sq=None,
+                  prev_orig2_sq_moved=None,
+                  dest2_sq=None,
                   dest2_sq_mod=None):
         """ Make move after decode
         Update to_move iff successful
+        sets/records if orig_sq,orig2 pieces have previouly been moved
         :orig_sq: origin square for move
+        :prev_orig_sq_moved: True if orig_sq moved previously
+                default: get state before move
         :dest_sq: destination square for move
         :spec: move specification
         :dest_sq_mod: alternate piece for destination e.g. promotion 
         :update: change board default: True - change
         :orig2_sq: optional second origin sq e.g. for castle
+        :prev_orig2_sq_moved: True if orig_sq moved previously
+                default: get state before move
         :dest2_sq: optional second destination sq
         :dest2_sq_mod: optional alternate piece for dest
         :returns: None if successful, else err msg
@@ -748,9 +786,15 @@ class Chessboard:
             return err
         
         if update:
+            if orig_sq is not None:
+                prev_orig_sq_moved = self.set_as_moved(orig_sq)
+            if orig2_sq is not None:
+                prev_orig2_sq_moved = self.set_as_moved(orig2_sq)
             self.save_move(orig_sq=orig_sq, dest_sq=dest_sq,
                     orig2_sq=orig2_sq, dest2_sq=dest2_sq,
-                    spec=spec)
+                    spec=spec,
+                    prev_orig_sq_moved=prev_orig_sq_moved,
+                    prev_orig2_sq_moved=prev_orig2_sq_moved)
             orig_piece = self.get_piece(sq=orig_sq)
             self.remove_piece(sq=orig_sq)
             dest_update = orig_piece if dest_sq_mod is None else dest_sq_mod
@@ -787,10 +831,15 @@ class Chessboard:
         
         return self.move_stack[-1]
             
-    def save_move(self, orig_sq=None, dest_sq=None,
-                  spec=None,
-                  orig2_sq=None, dest2_sq=None,
-                  dest2_sq_mod=None):
+    def save_move(self,
+                orig_sq=None,
+                prev_orig_sq_moved=None,
+                dest_sq=None,
+                spec=None,
+                orig2_sq=None,
+                prev_orig2_sq_moved=None,
+                dest2_sq=None,
+                dest2_sq_mod=None):
         """ Save move info, to enable undo
         :orig_sq: original square location
         :dest_sq: destination square location

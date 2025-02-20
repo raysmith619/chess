@@ -188,7 +188,8 @@ class ChessMoveNotation:
             return self.err_add()
         
         if self.piece_type is None:
-            return self.err_add("Can't determine piece if don't know piece_type")
+            if self.orig_sq_file is not None:
+                self.piece_type = 'p'
 
         self.piece = self.piece_type_to_piece(self.piece_type)
         if self.piece is None:
@@ -277,6 +278,8 @@ class ChessMoveNotation:
                 rook_dest = "f8"
         self.orig_sq = king_sq
         self.dest_sq = king_dest
+        self.orig2_sq = rook_sq
+        self.dest2_sq = rook_dest
         
         self.err = None
         return None     # Successful
@@ -416,7 +419,8 @@ class ChessMoveNotation:
 if __name__ == "__main__":
 
     SlTrace.clearFlags()
-    SlTrace.setFlags("print_board,no_ts")
+    #SlTrace.setFlags("print_board,no_ts")
+    SlTrace.setFlags("no_ts")
     from chess_move import ChessMove  # For minimal support
     from chessboard import Chessboard  # For minimal support
     from chessboard_print import ChessboardPrint
@@ -464,6 +468,7 @@ if __name__ == "__main__":
         if SlTrace.trace("print_board"):
             bd_str = cbp.display_board_str()
             SlTrace.lg("\n"+bd_str)         # After each move                
+    SlTrace.lg(f"End of selftest from {__file__}")
     if cmn.err_count > 0:
         SlTrace.lg(f"Parse Errors:{cmn.err_count}")
         SlTrace.lg(f"First error: move {cmn.err_first_move_no}:"

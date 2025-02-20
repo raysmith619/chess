@@ -47,7 +47,7 @@ class ChessPieceMovement:
         "b" : [(1,1), (1,-1), (-1,-1), (-1,1)],
         "r" : [(0,1), (1,0), (0,-1), (-1,0)],
     }
-    piece_type_dir_d["q"] =  piece_type_dir_d["b"] + piece_type_dir_d["b"]
+    piece_type_dir_d["q"] =  piece_type_dir_d["r"] + piece_type_dir_d["b"]
     piece_type_dir_d["k"] = piece_type_dir_d["q"] # only one sq
        
     def __init__(self, board):
@@ -73,42 +73,8 @@ class ChessPieceMovement:
                 keeps count self.assert_fail_count
                 raises exception when assert_fail_count_max reached
             """
-        if sq_only is not None:
-            SlTrace.lg(f"sq_only: {sq_only}", "test_strings")
-            SlTrace.lg(f"     in: {sqs}", "found_sqs")
-            if isinstance(sq_only, str):
-                sq_only = re.split(r'[,\s]\s*', sq_only)
-            sqs_in = {}
-            for sq in sq_only:
-                sqs_in[sq] = 'x'
-            sqs_all = self.all_sqs()
-            sqs_out = {}
-            for sq in sqs_all:
-                if sq not in sqs_in:    # create set complement
-                    sqs_out[sq] = 'z'
-            sq_in = sq_only
-            sq_out = list(sqs_out)
-            
-        if sq_in is not None:
-            if sq_only is None:
-                SlTrace.lg(f"     in: {sqs}", "found_sqs")
-            if isinstance(sq_in, str):
-                sq_in = re.split(r'[,\s]\s*', sq_in)
-            for sq in sq_in:
-                if not sq in sqs:
-                    err = "" if desc is None else desc+ " "
-                    err += f"sq: {sq} is unexpectely MISSING"
-                    self.assert_fail_report(err)
-
-        if sq_out is not None:
-            if isinstance(sq_out, str):
-                sq_in = re.split(r'[,\s]\s*', sq_out)
-            for sq in sq_out:
-                if sq in sqs:
-                    err = "" if desc is None else desc+" "
-                    err += f"sq: {sq} unexpectely is PRESENT"
-                    self.assert_fail_report(err)
-
+        return self.board.assert_sqs(sqs, sq_only=sq_only,
+                   sq_in=sq_in, sq_out=sq_out, desc=desc)
 
     def get_move_to_sqs(self, piece, orig_sq=None):
         """ Get list of squares this piece can legaly move to
@@ -316,6 +282,12 @@ class ChessPieceMovement:
         """ Get test fail count - numbers of test errors
         """
         return self.board.get_assert_fail_count()
+
+    def get_assert_first_fail(self):
+        """ Get first failed test no + fail msg
+        :return: fail test no
+        """
+        return self.board.get_assert_first_fail()
             
     def get_piece(self, sq=None, file=None, rank=None):
         """ Get piece at sq, None if empty
