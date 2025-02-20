@@ -16,7 +16,7 @@ similar to my work in
 
 ## A set of screen shots for a simple program
 ### Example User program in IDLE
-![Simple Chess Display](Docs/chess_board_display.PNG)
+![Simple Chess Display](Docs/simple_chess_board_wp.PNG)
 # Notation self test
 # Chess piece movement testing
 
