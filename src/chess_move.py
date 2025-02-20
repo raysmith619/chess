@@ -1,27 +1,33 @@
 #chess_move.py
-""" Decode move from specification
-"""
+
 import re
 
 from select_trace import SlTrace
 
+from chess_move_notation import ChessMoveNotation
+from chess_piece_movement import  ChessPieceMovement
+
 class ChessMove:
     def __init__(self, board, to_move=None):
         self.board = board
-        self.to_move = to_move
-        
+        if to_move is not None:
+            self.set_to_move(to_move)
+        self.setup()        # Initialize state    
+        self.cmn = ChessMoveNotation(self)
+        self.cpm = ChessPieceMovement(board)
+
     def __str__(self):
         """ String form for debugging/analysis
         """
-        ret = "ChessMove: to_move:{self.to_move}"
-        ret += f" {self.spec}"        # move specification
+        ret = f"ChessMove: {self.spec}"
+        ret += f"  {self.get_to_move()}"
+        ret += f" {self.piece}"       # piece e.g, K == white king
         if self.err:
             ret += f" {self.err}\n    "
-        if self.castle_king:
+        if self.is_castle_king_side:
             ret += f" castle_king"
-        if self.castle_queen:
+        if self.is_castle_queen_side:
             ret += f" castle_queen"
-        ret += f"\n    {self.piece}"       # piece e.g, K == white king
         if self.is_capture:
             ret += " is_capture:{self.is_capture}"
             ret += f" {self.capt_piece}"
@@ -30,23 +36,57 @@ class ChessMove:
         ret += f" dest_sq:{self.dest_sq}" # move's destination square
         if self.dest_sq_mod:
             ret += f"dest_sq_mod:{self.dest_sq_mod}"
-        if self.update_to_move:
-            ret += f" self.update_to_move"  # update to_move after successful move
+        if not self.update:
+            ret += " NO to_move update"  # update to_move after successful move
+        return ret
 
-    def decode_castle(self, spec,  to_move=None):
-        """ Process castle
-        :spec: castle specification oo or ooo
-        :to_move:white or black
-            default: ChessMove to_move, else current board.to_move            
+    def setup(self):
+        """ Setup initial state
+        which can be updated via decode...
         """
-        if spec == "O-O":
-            self.castle_king = True
-        elif spec == "O-O-O":
-            self.castle_queen =True
-        else:
-            self.err = "Unrecognized castle {spec}"
-            return self.err
+        self.err = None         # Error msg, None == no error
+        self.spec = None        # move specification
+        self.game_result = None # set with game result
+        self.is_check = False   # True if check
+        self.is_check_mate = False  # True if mate
+        
+        self.is_capture = False # True == capture made
+        self.piece = None       # set later
+        self.piece_type = None  # piece type k - king
+        self.orig_sq = None     # set up later
+        self.orig_sq_file = None    # to be disambugated
+        self.dest_sq = None     # move's destination square
+        self.dest_sq_mod = None # set later
+        self.dest_sq_file = None  # dest abrv e.g., e:f
+        self.orig2_sq = None    # optional origin square
+        self.dest2_sq = None    # optional destination square
+        self.dest2_sq_mod = None
+        self.is_castle = False  # True - is castle
+        self.is_castle_king_side = False  # castle kingside
+        self.is_castle_queen_side = False # castle queenside
+        
+    def decode(self, spec):
+        """ Decode move spec, in preparation for verification,
+        execution.
+        """
+        
+        self.setup()    # Setup default settings
+        # In the future we may access some of these to
+        # self.cmn the chess notational entry
+        #
+        
+        # Parse basic notation
+        if self.cmn.decode_spec_parts(spec=spec):
+            return self.cmn.err
+                
+        if self.cmn.is_castle:
+            self.cmn.decode_castle()    # complete castle parsing
+            return self.cmn.err         # return completed
 
+        # Find orig_sq
+        if self.cmn.decode_orig_sq():
+            return self.cmn.err
+        
     def get_start_piece(self, start_str, to_move=None):
         """ Determine starting piece, given spec string
         :start_str: beginning of specification less destination
@@ -72,189 +112,24 @@ class ChessMove:
         :dest_sq:  destination square
         :returns: sq, None if none apply
         """
-        candidate_piece_sqs_d = self.get_pieces(piece)
-        can_moves = []
-        if len(candidate_piece_sqs_d) == 1:
-            return list(candidate_piece_sqs_d)[0]
+        ps_d = self.get_pieces(piece)   # our pieces on bd
+        orig_sqs = []       # Filled with origin squares
+        for ps in ps_d:
+            sq = self.ps_to_sq(ps)
+            sq_dest_d = self.get_move_to_sqs(piece=piece,
+                                orig_sq=sq)
+            if dest_sq in sq_dest_d:
+                orig_sqs.append(sq)
+                
+        if len(orig_sqs) == 1:
+            return orig_sqs[0]  # One and only one
         
-        return self.get_choice_sq(piece, candidate_piece_sqs_d, piece_choice)
-    
-    def get_dest_sq(self, dest_str, orig_piece=None):
-        """ Get destination square
-        :dest_str: destination part of specification
-                e.g. a for file a ONLY for pawn
-                    a1: file a, rank 2
-        :returns: destination square
-        """
-        if (match_dest_sq := re.match(r'([a-z])([1-8]$)', dest_str)):
-            file, rank = match_dest_sq.groups()
-            return file+rank
+        if len(orig_sqs) < 1:
+            return None         # No takers
         
-        if (match_dest_sq := re.match(r'([a-z])', dest_str)):
-            file = match_dest_sq.group(1)
-            if not self.is_pawn(orig_piece):
-                raise Exception(f"{dest_str} piece: {orig_piece}"
-                                f" not a pawn")
-            raise Exception(f"TBD support for dest_str: {dest_str}")
-        
+        # TBD - get choice, besure it is unique
+        return None
             
-        
-    def decode_if_capture(self, spec, to_move=None):
-        """ Check for and process capture
-        Examples exd,exd5, Bxe5, Rdxf8, R1xa3, Qh4xe1
-        :spec: move specificaiont
-        :to_move: whose move
-                default: use to_move self or self.board.to_move
-        :returns: True if a capture
-                if capture, setup move settings
-        """
-        # with x or : explicit capture
-        expl_capture = False
-        impl_piece_capture = False
-        impl_pawn_capture = False
-        if match_expl_capture := re.match(r'^(.*)([x:])(.*))$', spec):
-            expl_capture = True
-        elif (match_impl_piece_capture :=
-                    re.match(r'([KQRBN])(.*)([a-zA-Z][1-8])$', spec)):
-            impl_piece_capture = True
-        elif (match_impl_pawn_capture :=
-                    re.match(r'(([a-z])(.*))$', spec)):
-            impl_pawn_capture = True
-        else:
-            return False
-        
-        if expl_capture:     
-            # Examples:
-            # e4:d5, e:d, e:d5 q:a5, Qh4xe1
-            # B:a1
-            start_str,self.capture_ind,dest_str = match_expl_capture.groups()
-            orig_piece,piece_choice = self.get_start_piece(start_str)
-            self.dest_sq = self.get_dest_sq(dest_str,
-                                            orig_piece=orig_piece)             
-            self.orig_sq = self.get_orig_sq(piece=orig_piece,
-                                       piece_choice=piece_choice,
-                                       dest_sq=self.dest_sq)
-                        
-    def decode(self, spec,  to_move=None):
-        """ Decode notation into:
-        in chess notation e.g. e4, e5, Nf3, Nc3, Ncf3, Qh4e1
-        :to_move: side making move
-                default: not previous move's
-                        first: white
-        :setups: self.err error text or None, also returned by decode
-                self.piece to piece notation e.g. p or P
-                self.orig_sq: beginning square e.g. e2
-                self.dest_sq: destination square
-                self.capt_sq: capture square or None if no capture
-                self.dest_sq_mod: alternative to orig_sq contents
-                                for say promotions
-                            default: destination sq
-                                gets piece from self.orig_sq
-                self.update_to_move: update to_move after move
-                self.to_move: Whose move white/black
-                    default: use board.to_move
-        :returns: None if successful, else err_msg text 
-        """
-        # Change if/when appropriate
-        self.err = None         # Error msg, None == no error
-        self.spec = spec        # move specification
-        self.is_capture = False # True == capture made
-        self.capt_piece = None  # captured piece (on dest_sq)
-        self.to_move = None     # to move "white" / "black"
-        self.piece = None       # piece e.g, K == white king
-        self.orig_sq = None     # move's original square
-        self.dest_sq = None     # move's destination square
-        self.dest_sq_mod = None # modified dest_sq piece
-        self.update_to_move = True  # update to_move after successful move
-        is_castle_king = False  # castle kingside
-        is_castle_queen = False # castle queenside
-        # piece/square selection results
-        self.dest_from_file = None  # dest abrv e.g., e:f
-        self.orig_from_file = None  # orig abrv g:h
-         
-        
-        if to_move is None:
-            to_move = self.to_move
-            if to_move is None:
-                to_move = self.board.to_move
-        self.spec = spec        
-        if spec in ["O-O", "O-O-O"]:
-            return self.decode_castle(spec=spec, to_move=to_move)
-        
-        # check for d:e TBD
-        # Check if capture
-        if self.decode_if_capture(spec, to_move=to_move):
-           return self.err  # decoded - return result
-        
-        # Pick off destination <file><rank> from tail end
-        #   with capture : or x
-        if (match_dest_pos := re.match(r'^(.*)([x:])([a-z])(\d+)$', spec)):
-            self.is_capture = True
-            move_start,capture_str,dest_pos_file, dest_pos_rank = match_dest_pos.groups()        
-            self.capt_piece = self.get_piece(dest_pos_file+dest_pos_rank)
-        elif (match_dest_pos := re.match(r'^(.*)([a-z])(\d+)$', spec)):
-            move_start,dest_pos_file, dest_pos_rank = match_dest_pos.groups()        
-
-        if move_start == '':    # No piece == pawn
-            piece = "p" if self.board.to_move == "black" else "P"
-            piece_choice = ""
-        else:
-            # Allow for extended pieces not in kqrbnp,KQRBNP
-            if not (match_move_start := re.match(r'([A-Z])(\S*)$', move_start)):
-                self.err = f"Unrecognize move piece: {move_start}"
-                return self.err
-        
-            piece,piece_choice = match_move_start.groups()
-        SlTrace.lg(f"spec: {spec} to_move:{to_move}"
-                    f"piece:{piece}"
-                    f" piece_choice:{piece_choice}"
-                    f" dest:{dest_pos_file}{dest_pos_rank}",
-                    "chess_moves")
-        self.piece = piece
-        self.piece_choice = piece_choice
-        self.dest_sq = dest_pos_file+dest_pos_rank
-        if not self.find_orig_sq():
-            return self.err     # Return error msg string
-            
-        # Pick off destination <file> from tail end e.g. exf
-        elif (match_dest_pos := re.match(r'^(.*)[x:]([a-z])$', spec)):
-            move_start,dest_pos_file = match_dest_pos.groups()        
-            if move_start == '':    # No piece == pawn
-                piece = "p" if self.board.to_move == "black" else "P"
-                piece_choice = ""
-            else:
-                # Allow for extended pieces not in kqrbnp,KQRBNP
-                if not (match_move_start := re.match(r'([A-Z])(\S*)$', move_start)):
-                    self.err = f"Unrecognize move piece: {move_start}"
-                    return self.err
-            
-                piece,piece_choice = match_move_start.groups()
-            SlTrace.lg(f"spec: {spec} to_move:{to_move}"
-                        f"piece:{piece}"
-                        f" piece_choice:{piece_choice}"
-                        f" dest:{dest_pos_file}{dest_pos_rank}",
-                        "chess_moves")
-            self.piece = piece
-            self.piece_choice = piece_choice
-            self.dest_sq = dest_pos_file+dest_pos_rank
-            if not self.find_orig_sq():
-                return self.err     # Return error msg string
-
-
-    def is_pawn(self, piece):
-        """ Check if a pawn
-        :piece: piece notation
-        """
-        return True if (piece == "P" or piece == "p") else False
-
-    def is_some_piece_choice(self):
-        """ Check if a non-empty piece disambiguation
-        """
-        if (self.piece_choice is not None
-            and self.piece_choice != ""):
-            return True
-        
-        return False
         
     def find_orig_sq(self):
         """ Determine original move square
@@ -265,24 +140,36 @@ class ChessMove:
         """
         if self.is_pawn(self.piece):
             return self.find_orig_sq_pawn()
+
+        candidate_ps = self.get_pieces(self.piece)
+        capt_sqs = []       # to fill with squares that can move to
+                            # our capture our destination 
+        if len(candidate_sqs) == 1:
+            return self.ps_to_sq(candidate_sqs[0])
     
     def rel_sq(self, base_sq, at_rank=None, rel_rank=None):
         """ find square relative to given sq
         :sq: base square
         :at_rank: get sq with base_sq file with at_rank
-        :rel_rank: get sq with base_sq file with rank of base_sq rank+rel_rank
+        :rel_rank: get sq with base_sq file with rank
+                increasing for white, decreasing for black
+                of base_sq rank+rel_rank
         :returns: sq
         """
+        to_move = self.get_to_move()
+        
         if at_rank is not None:
             base_sq_file,base_sq_rank = self.sq_to_file_rank(base_sq)
             at_sq = self.file_rank_to_sq(file=base_sq_file,
                                          rank=at_rank)
         
         if rel_rank is not None:
+            rank_dir = 1 if to_move == "white" else -1
+            rank_change = rank_dir*rel_rank
             dest_file,dest_rank = self.sq_to_file_rank(self.dest_sq,
                                                        to_int=True)
             at_sq = self.file_rank_to_sq(file=dest_file,
-                                         rank=dest_rank+rel_rank)
+                                         rank=dest_rank+rank_change)
         return at_sq
     
     def is_in_sq(self, piece, at_rank=None, rel_rank=None):
@@ -388,11 +275,64 @@ class ChessMove:
                     err += f" Unexpected occupied squares: {occupied_sq}"
                     self.err
                     return err
+
+    """
+    Links to cpm (ChessPieceMove) functions
+    """
+    def get_move_to_sqs(self, piece, orig_sq=None):
+        """ Get list of squares this piece can legaly move to
+        including capture and promotion, based on board contents
+        One can use various functions to setup position:
+            self.clear_board() - clears board to empty
+            self.place_piece() - to setup additional pieces
+                    Note orig_sq implies piece, sq without actually
+                    populating the square
+            self.save_move(ChessSaveUnit) sets previous move 
+                e.g. self.save_move(ChessSaveUnit(self,
+                            orig_ps="pe7", dest_ps="pe5"))
+                        is a 2-square black pawn move which could
+                        be taken enpasant by a white pawn on d4
+        :piece: piece
+        :orig_sq: origin square
+        :prev_move: previous move (ChessSaveUnit)
+            default: get from board 
+        :returns: dictionary of candidate destination squares
+                Empty if none
+                None if error
+        """
+        return self.cpm.get_move_to_sqs(piece=piece,
+                                orig_sq=orig_sq)
+
+
+
+    """
+    Links to cmn (ChessMoveNotation) functions
+    """
                             
+    def decode_spec_parts(self, spec):
+        """ Decode standard specification, creating parts
+        for possible disambuation, verification, and execution:
+        Verification, disambugation, execution is done later
+        :setups: self.err error text or None, also returned by decode
+                self.piece_type: lowercase KQRBNP
+                self.dest_sq: destination square, if known
+                    or self.dest_sq_file, if to be determined
+                self.is_capture: True if capture
+        :returns: None if successful, else err_msg text 
+        """
+        return self.cmn.decode_spec_parts(spec=spec)                        
 
     """
     Links to board functions
     """
+
+    def can_castle(self, king_side=True, to_move=None):
+        """ Determine if we can castle
+        :king_side: True if king side, else queen side
+                default: kingside                
+        :returns: True if the requested castling is permited
+        """
+        return self.board.can_castle(king_side=True, to_move=None)
 
     def file_rank_to_sq(self, file=None, rank=None):
         """ Convert rank, file to sq notation
@@ -406,16 +346,24 @@ class ChessMove:
         if isinstance(rank, int):
             rank = chr(ord('1')+rank-1)
         return file+rank
+
+    def get_move_no(self):
+        """ Get chess game move number, assuming
+        started with white
+        """
+        return self.board.get_move_no()
         
-    def get_piece(self, sq=None, file=None, rank=None):
+    def get_piece(self, sq=None, file=None, rank=None, remove=False):
         """ Get piece at sq, None if empty
-        :sq: square notatin e.g., a1 if present
+        :sq: square notation e.g., a1 if present
             else
         :file: file letter or int:1-
-        :rank: rank str or int: 1- 
+        :rank: rank str or int: 1-
+        :remove: True - remove piece from board
+            default: leave piece in square 
         """
         return self.board.get_piece(
-            sq=sq, file=file, rank=rank)
+            sq=sq, file=file, rank=rank, remove=remove)
 
     
     def get_pieces(self, piece=None, piece_type=None):
@@ -430,18 +378,58 @@ class ChessMove:
         """
         return self.board.get_pieces(piece=piece,
                                      piece_type=piece_type)
-        
+
+    def get_to_move(self):
+        """ Whose move is it?
+        """
+        return self.board.get_to_move()
+
+    def set_to_move(self, to_move=None):
+        """ set who to move
+        :to_move: "black" or "white"
+            default: "white"
+        """
+        self.board.set_to_move(to_move)
+
+    def piece_to_type(self, piece):
+        """ Get piece's type (lowercase of piece)
+        :piece: piece uppercase for white
+        :returns: piece type (lowercase)
+        """
+        return self.board.piece_to_type(piece)
+    
+    def piece_type_to_piece(self, type, to_move=None):
+        """ Get piece's color
+        :piece_type_to_piece: piece uppercase for white
+        :to_move: black/white
+            default: from board
+        :returns: piece    # uppercase if white lowercase if black
+        """
+        return self.board.piece_type_to_piece(type=type, to_move=to_move)
+
+    def ps_to_sq(self, ps):
+        """ Get square from piece_square
+        :ps: piece-square spec
+        :returns: square
+        """
+        return self.board.ps_to_sq(ps=ps)
+    
     def make_move(self, orig_sq=None, dest_sq=None,
-                  spec=None,
                   dest_sq_mod=None,
-                  update_to_move=None):
+                  spec=None,
+                  update=True,
+                  orig2_sq=None, dest2_sq=None,
+                  dest2_sq_mod=None):
         """ Make move after decode
         Update to_move iff successful
         :orig_sq: origin square for move
         :dest_sq: destination square for move
         :spec: move specification
         :dest_sq_mod: alternate piece for destination e.g. promotion 
-        :update_to_move: change to_move default: True - change
+        :update: change board default: True - change
+        :orig2_sq: optional second origin sq e.g. for castle
+        :dest2_sq: optional second destination sq
+        :dest2_sq_mod: optional alternate piece for dest
         :returns: None if successful, else err msg
         """
         if orig_sq is None:
@@ -452,13 +440,22 @@ class ChessMove:
             spec = self.spec
         if dest_sq_mod is None:
             dest_sq_mod = self.dest_sq_mod
-        if update_to_move is None:
-            update_to_move = self.update_to_move
-            
+        if update is None:
+            update = self.update
+        if orig2_sq is None:
+            orig2_sq = self.orig2_sq
+        if dest2_sq is None:
+            dest2_sq = self.dest2_sq
+        if dest2_sq_mod is None:
+            dest2_sq_mod = self.dest2_sq_mod
+                
         return self.board.make_move(orig_sq=orig_sq,
                                     dest_sq=dest_sq,
                                     dest_sq_mod=dest_sq_mod,
-                                    update_to_move=update_to_move,
+                                    orig2_sq=orig2_sq,
+                                    dest2_sq=dest2_sq,
+                                    dest2_sq_mod=dest2_sq_mod,
+                                    update=update,
                                     spec=spec)
 
     def sq_to_file_rank(self, sq, to_int=False):
@@ -467,24 +464,43 @@ class ChessMove:
         :to_int: True - return file,rank as ints 1-
         :returns: (file, rank) e.g. a1  or to_int 1,1
         """
-        return self.board.sq_to_file_rank(self, sq, to_int=to_int)
-
-            
+        return self.board.sq_to_file_rank(sq=sq, to_int=to_int)
+           
 if __name__ == "__main__":
     
     from chessboard import Chessboard
     from chessboard_print import ChessboardPrint
+    import chess_move_notation as CMN 
+    
     SlTrace.clearFlags()
 
     cb = Chessboard()
     cb.standard_setup()
     cbp = ChessboardPrint(cb)
-    cm = ChessMove(cb)
-    for move_spec in ["e4", "e5", "Nf3", "Nc6", "Ncf3", "Qh4e1"]:
+    moves = """
+    1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O
+    5.Bf4 d5 6.Qb3 dxc4 7.Qxc4 c6 8.e4 Nbd7
+    9.Rd1 Nb6 10.Qc5 Bg4 11.Bg5 Na4 12.Qa3 Nxc3
+    13.bxc3 Nxe4 14.Bxe7 Qb6 15.Bc4 Nxc3 16.Bc5 Rfe8+
+    17.Kf1 Be6 18.Bxb6 Bxc4+ 19.Kg1 Ne2+ 20.Kf1 Nxd4+
+    21.Kg1 Ne2+ 22.Kf1 Nc3+ 23.Kg1 axb6 24.Qb4 Ra4
+    25.Qxb6 Nxd1 26.h3 Rxa2 27.Kh2 Nxf2 28.Re1 Rxe1
+    29.Qd8+ Bf8 30.Nxe1 Bd5 31.Nf3 Ne4 32.Qb8 b5
+    33.h4 h5 34.Ne5 Kg7 35.Kg1 Bc5+ 36.Kf1 Ng3+
+    37.Ke1 Bb4+ 38.Kd1 Bb3+ 39.Kc1 Ne2+ 40.Kb1
+    Nc3+ 41.Kc1 Rc2# 0-1
+    """
+    move_specs = CMN.game_to_specs(moves) 
+    for move_spec in move_specs:
+        cm = ChessMove(cb)
+        move_no = cm.get_move_no()
+        move_no_str = f"move {move_no:2}: "
+        if cm.get_to_move() == "black":
+            move_no_str = " " * len(move_no_str)
         if cm.decode(move_spec):
-           SlTrace.lg(f"{move_spec}: {cm.err}")
+           SlTrace.lg(f"{move_no_str}Error: {move_spec}: {cm.err}")
         else:
-            SlTrace.lg(f"move: {cm}")
+            SlTrace.lg(f"{move_no_str}{cm}")
                 
         if cm.make_move():
             SlTrace.lg(cm.err)

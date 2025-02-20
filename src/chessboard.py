@@ -1,79 +1,19 @@
 #chessboard.py 10Feb2025  crs
-import re
-
 """
 Experimentation of manipulation of a chess board
 Goals:
     efficient display
     efficient access
 """
+import re
 from select_trace import SlTrace
 
 from chess_piece_images import ChessPieceImages
-from chess_move import ChessMove
-
-
-class ChessSaveUnit:
-    """ Save info to support restoring previous current
-    board status
-    """
-    
-    def __init__(self,
-        board,
-        orig_ps=None,
-        dest_ps=None,
-        spec=None,
-        to_move=None,
-        orig_ps_2=None,
-        dest_ps_2=None):
-        if to_move is None:
-            to_move = board.to_move
-        self.orig_ps = orig_ps
-        self.dest_ps = dest_ps
-        self.spec = spec
-        self.orig_ps_2 = orig_ps_2
-        self.dest_ps_2 = dest_ps_2
-
+from chess_piece_movement import ChessPieceMovement
+from chess_save_unit import ChessSaveUnit
 
 class Chessboard:
-    """
-    Piece type movement directions
-    Number of repititions depends on piece
-    and in the case of pawns, the conditions 1'st move, after
-    (x,y)
-    by piece or piece capture, if different than move
-    arranged in clockwise, starting by up/to right
-    NOTE: change is in the "forward" direction, negated for black
-           As, except for pawns, the lists are symetric in y for
-           content - For efficiency/clarity, we provide
-           a black pawn list "p-black" which replicates the "p"
-           entry with y negated
-    As for dir "capture" entries, these entries take effect if
-    and only if their use can effect a capture, i.e., the
-    destination square is occupied by an opponent.
-    EP capture is effect, if the previous opponent move is a
-    2-square pawn move jumping the capture square. 
-    """      
-    piece_type_dir_d = {
-        # lists of tuples
-        #   PAIR X,Y, TRIPLE x,y,"capture" - only if capture
-        # pawn:
-        #       rep: first move 1, else 2
-        "p" : [(0,1),
-               (-1,1, "capture"), (1,1,"capture")],
-        # black pawn MUST equal "p" with y entries negated
-        "p-black" : [(0,-1),
-            (-1,-1, "capture"), (1,-1,"capture")],
-        
-        "n" : [(1,2), (2,1), (2,-1), (1,-2),
-               (-1,-2), (-2,-1), (-2,1), (-1,2)],
-        "b" : [(1,1), (1,-1), (-1,-1), (-1,1)],
-        "r" : [(0,1), (1,0), (0,-1), (-1,0)],
-    }
-    piece_type_dir_d["q"] =  piece_type_dir_d["b"] + piece_type_dir_d["b"]
-    piece_type_dir_d["k"] = piece_type_dir_d["q"] # only one sq
 
-    
     def __init__(self,
                  pieces = None,
                  base_board = None,
@@ -111,12 +51,14 @@ class Chessboard:
         self.to_move = to_move
         self.setup_board()
         self.move_stack = []    # Stack of ChessSaveUnit
-        self.update_to_move = True # Default - update after make_move
+        self.update = True # Default - update after make_move
         self.moved_pieces_d = {}  #dictionary, by initial square
                                   #  of pieces who have moved
         self.clear_assert_test_count()
         self.clear_assert_fail()
         self.set_assert_fail_max(10)
+        self.cpm = ChessPieceMovement(self)
+        
                                   
     def setup_board(self):
         """ Set board internals
@@ -236,16 +178,39 @@ class Chessboard:
         """
         self.assert_test_count = 0
 
-    def start_assert_test(self, desc=None):
-        """ start test
+    def get_assert_test_count(self):
+        """ Get test count
+        """
+        return self.assert_test_count
+
+    def do_test(self, desc=None, desc2=None, trace=None):
+        """ start test, test_group
+        :desc: description
+            default: continue with prev description
+        :desc2: additional description
+        :trace: possible trace flag
         """
         self.assert_test_count += 1
+        if desc is not None:
+            self.assert_test_desc =  desc
+        self.assert_desc2 = desc2
+        self.assert_test_trace = trace
+        msg = f"\nTest {self.assert_test_count}:"
+        msg += f" {self.assert_test_desc}"
+        if desc2 is not None:
+            msg += f" {desc2}"
+        SlTrace.lg(msg)
 
 
     def clear_assert_fail(self):
         """ Clear assert fail count
         """
         self.assert_fail_count = 0
+
+    def get_assert_fail_count(self):
+        """ Get test fail count - numbers of test errors
+        """
+        return self.assert_fail_count
         
     def set_assert_fail_max(self, max=10):
         """ Set maximum assert_fail_reports till
@@ -362,73 +327,40 @@ class Chessboard:
         """
         self.board_setting[sq] = None   # Leave for easy access
         
-    def get_piece(self, sq=None, file=None, rank=None):
+    def get_piece(self, sq=None, file=None, rank=None, remove=False):
         """ Get piece at sq, None if empty
-        :sq: square notatin e.g., a1 if present
+        :sq: square notation e.g., a1 if present
             else
         :file: file letter or int:1-
-        :rank: rank str or int: 1- 
+        :rank: rank str or int: 1-
+        :remove: True - remove piece from board
+            default: leave piece in square 
         """
         if sq is not None:
             if sq in self.board_setting:
                 return self.board_setting[sq]            
             return None
-        
-        if isinstance(file, int):
-            file = chr(ord('a')+file-1)
-        if isinstance(rank, int):
-            rank = chr(ord('1')+rank)   # limited 10= ";"
-        sq = file+rank
-        if sq in self.board_setting:
-            return self.board_setting[sq]
-                    
-        return None
-    
-        return self.board_setting[file+rank]
-
-    def get_move_to_sqs(self, piece, orig_sq=None):
-        """ Get list of squares this piece can legaly move to
-        including capture and promotion, based on board contents
-        One can use various functions to setup position:
-            self.clear_board() - clears board to empty
-            self.place_piece() - to setup additional pieces
-                    Note orig_sq implies piece, sq without actually
-                    populating the square
-            self.save_move(ChessSaveUnit) sets previous move 
-                e.g. self.save_move(ChessSaveUnit(self,
-                            orig_ps="pe7", dest_ps="pe5"))
-                        is a 2-square black pawn move which could
-                        be taken enpasant by a white pawn on d4
-        :piece: piece
-        :orig_sq: origin square
-        :prev_move: previous move (ChessSaveUnit)
-            default: get from board 
-        :returns: dictionary of candidate destination squares
-                Empty if none
-                None if error
-        """
-        piece_type = piece.lower()
-        if piece_type not in Chessboard.piece_type_dir_d:
-            self.err = f"get_move_to_sqs {piece}"
+        elif file is None and rank is None:
             return None
         
-        if piece == 'p':
-            dir_type = 'p-black'    # reverse y direction
-        else:
-            dir_type = piece_type
-        dirs = Chessboard.piece_type_dir_d[dir_type]
-        if piece_type == 'p':
-            if not self.is_moved(orig_sq):
-                rep = 2
-            else:
-                rep = 1
-        elif piece_type in ['k', 'n']:
-            rep = 1
-        else:
-            rep = None  # Use default - max
-        return self.get_move_dir_sqs(piece, orig_sq=orig_sq,
-                                     list_dirs=dirs,
-                                     rep=rep)
+        sq = self.file_rank_to_sq(file=file, rank=rank)
+        if sq is None:
+            return None
+        
+        if sq in self.board_setting:
+            piece = self.board_setting[sq]
+            if remove:
+                self.remove_piece(sq)
+            return piece 
+                    
+        return None
+
+    def remove_piece(self, sq):
+        """ Remove piece from square
+        :sq: sq to remove OK if sq is empty
+        """
+        if sq in self.board_setting:
+            del self.board_setting[sq]
 
     def get_adj_sq(self, sq, dir):
         """ Get adjacent square in direction (x,y) 
@@ -511,74 +443,202 @@ class Chessboard:
         """ Convert rank, file to sq notation
         :file: int 1-8 or str: a-h
         :rank: int 1-8 or str 1-8
-        :returns: sq notation
+        :returns: sq notation, None if off board
         """
         if isinstance(file,int):
+            if file < 1 or file > self.nsqx:
+                return None
+            
             file = chr(ord('a')+file-1)
         if isinstance(rank, int):
+            if rank < 1 or rank > self.nsqx:
+                return None
+            
             rank = chr(ord('1')+rank-1)
         return file+rank
-    
+
+    def get_move_no(self):
+        """ Get chess game move number, assuming
+        started with white
+        """
+        num = 1 + len(self.move_stack)//2
+        return num
+        
     def get_pieces(self, piece=None, piece_type=None):
         """ Get piece-square list for board setting
-        :piece: get only matching pieces
+        :piece: list of pieces or piece - get only matching pieces
             OR
-        :piece_type get only matching piece types(case insensitive)
+        :piece_type: get only matching piece types(case insensitive)
                 e.g q - all both color queens
                 "empty" - all empty squares
                 "any" - any piece type
         :returns: list of piece_square settings
         """
+        if isinstance(piece, (tuple,list)):
+            pss = []
+            for pc in piece:
+                pss.extend(self.get_pieces(piece=pc))
+            return pss
+            
         if piece_type is not None:
             piece_type = piece_type.lower()
         piece_squares = []  # list <piece><rank><file>
         piece_by_squares = {}
         for sq in self.board_setting:
             pce = self.board_setting[sq]
+            if pce is None:
+                continue        # Ignore empty
             ptype = pce.lower()
             ps = None if piece is None else pce+sq
             if ((piece is not None and pce == piece)
                 or (piece_type is not None and 
                     ptype == piece_type)
-                or True):
+                or piece is None and piece_type is None):
                     piece_squares.append(pce+sq)
                     piece_by_squares[sq] = pce  # for inversion
         return piece_squares
     
-        '''
-        if piece_type == "EMPTY":
-            pie_sqs = []
-            for f_no in range(1, self.nsqx+1):
-                for r_no in range(1, self.nsqy+1):
-                    sq = self.file_rank_to_sq(file=f_no,
-                                              rank=r_no)
-                    if sq not in piece_by_squares:
-                        pie_sqs.append(sq)
-            return pie_sqs
-            
-        return piece_squares
-        '''
-        
-    def make_move(self, move_spec, to_move=None):
-        """ Make a chess move
-        :move_spec: make move
-                1. chess notation
-                    in chess notation e.g. e4, e5, Nf3, Nc3, Ncf3, Qh4e1
-        :to_move: side making move
-                default: board.to_move
-                        first: white
-        :returns: None if successful, err_msg if not 
-        """
-        mv = ChessMove(self, move_spec)
 
     """
     game playing
     """
+
+    def get_to_move(self):
+        """ Whose move is it?
+        """
+        return self.to_move
+
+    def set_to_move(self, to_move=None):
+        """ set who to move
+        :to_move: "black" or "white"
+            default: "white"
+        """
+        if to_move is None:
+            to_move = "white"
+        self.to_move = to_move    
+    
     def update_move(self):
         """ Update whose to move
         """
         self.to_move = "black" if self.to_move == "white" else "white"
+
+    def can_castle(self, king_side=True, to_move=None):
+        """ Determine if we can castle
+        :king_side: True if king side, else queen side
+                default: kingside                
+        :returns: True if the requested castling is permited
+        """
+        if to_move is None:
+            to_move = self.get_to_move()
+            
+        if king_side:
+            if to_move == "white":
+                king_sq = "e1"
+                king_dest = "g1"
+                rook_sq = "h1"
+                rook_dest = "f1"
+            else:
+                king_sq = "e8"
+                king_dest = "g8"
+                rook_sq = "h8"
+                rook_dest = "f8"
+        else:
+            if self.to_move == "white":
+                king_sq = "e1"
+                king_dest = "c1"
+                rook_sq = "a1"
+                rook_dest = "d1"
+            else:
+                king_sq = "e8"
+                king_dest = "g8"
+                rook_sq = "h8"
+                rook_dest = "f8"
+
+        # neither king nor rook can have moved
+        if self.is_moved(king_sq) or self.is_moved(rook_sq):
+                return False
+                
+        # No intervening square can be occupied
+        intervening_sqs = self.get_intervening_sqs(king_sq, rook_sq)
+        for isq in intervening_sqs:
+            if self.get_piece(isq) is not None:
+                return False    # Some intervening piece
+
+        return True     # TFD - skip passing through check test
     
+        # King can't be in or pass through check
+        kp_sqs = self.get_intervening_sqs(king_sq, king_dest,
+                                          include_first=True,
+                                          include_last=True)
+        for kp_sq in kp_sqs:
+            attacking_sqs  = self.get_attacking_sqs(kp_sq)    
+            if len(attacking_sqs) > 0:
+                return False    # At least one attacker
+        
+        return True
+
+    def get_intervening_sqs(self, first_sq, last_sq,
+                            include_first=False,
+                            include_last=False):
+        """ Get squares between first and last
+        in same rank (maybe some day other paths)
+        :first_sq: beginning square
+        :last_sq: last square
+        :include_first: True - include first square, else omit
+                    default: False - omit
+        :include_last: True - include last square, else omit
+        :returns: dictionary, by sq, of contained pieces, None == empty
+        """
+        f_file_no, f_rank_no = self.sq_to_file_rank(
+            first_sq, to_int=True)
+        l_file_no, l_rank_no = self.sq_to_file_rank(
+            last_sq, to_int=True)
+        assert f_rank_no == l_rank_no, "get_intervening_sqs separate ranks"
+        file_change = l_file_no - f_file_no
+        file_dir = int(file_change/abs(file_change))
+        incl_sqs = {}
+        file_no = f_file_no
+        rank_no = f_rank_no
+        while True:
+            sq = self.file_rank_to_sq(file=file_no, rank=rank_no)
+            incl_sqs[sq] = sq
+            if sq == last_sq:
+                break
+            file_no += 1
+            
+        if not include_first:
+            del incl_sqs[first_sq]
+        if not include_last:
+            del incl_sqs[last_sq]
+        return incl_sqs
+
+    def get_attacking_sqs(self,sq, to_move=None):
+        """ Get list of squares which have opponent pieces
+        which can attack/capture given sq
+        :sq: target square
+        :to_move: side to move (our side)
+                default: the board's
+        :returns: list of squares, whose pieces can attack our
+                piece in sq
+        """
+        if to_move is None:
+            to_move = self.get_to_move()
+        
+        
+        at_pieces_black = ["k", "q", "r", "b", "n", "p"]
+        at_pieces_white = [x.upper() for x in at_pieces_black ]
+        opp_pcs = at_pieces_black if to_move == "white" else at_pieces_white   
+        opp_sqs = self.get_pieces(piece=(opp_pcs))
+        attacking_sqs = []
+        for opp_sq in opp_sqs:
+            opp_piece = self.get_piece(opp_sq)
+            opp_move_to_sqs = self.get_move_to_sqs(opp_piece,
+                                                   orig_sq=opp_sq)
+            if sq in opp_move_to_sqs:
+                attacking_sqs.append(opp_sq)
+        return attacking_sqs
+            
+
     def make_castle(self, king_side=True):
         """ Do castle move
         :king_sq: king's square e.g. e1
@@ -612,15 +672,40 @@ class Chessboard:
                 rook_sq = "h8"
                 rook_dest = "f8"
         self.make_move(orig_sq=king_sq, dest_sq=king_dest,
-                        move_update=False)
-        self.make_move(orig_sq=rook_sq, dest_sq=rook_dest,
-                        move_update=False)
+                        orig2_sq=rook_sq, dest2_sq=rook_dest)
+
 
     def piece_color(self, piece):
         """ Get piece's color
         :piece: piece uppercase for white
         """
         return "white" if piece.isupper() else "black"
+
+    def piece_type_to_piece(self, type, to_move=None):
+        """ Get piece's color
+        :piece_type_to_piece: piece uppercase for white
+        :to_move: black/white
+            default: from board
+        :returns: piece    # uppercase if white lowercase if black
+        """
+        if to_move is None:
+            to_move = self.get_to_move()
+        piece = type.lower() if to_move == "black" else type.upper()
+        return piece
+
+    def piece_to_type(self, piece):
+        """ Get piece's type (lowercase of piece)
+        :piece: piece uppercase for white
+        :returns: piece type (lowercase)
+        """
+        return piece.lower()
+    
+    def ps_to_sq(self, ps):
+        """ Get square from piece_square
+        :ps: piece-square spec
+        :returns: square
+        """
+        return ps[1:]       # so far just one character pieces
         
         
     def place_piece(self, piece, sq=None):
@@ -635,20 +720,23 @@ class Chessboard:
         return prev_piece
     
     def make_move(self, orig_sq=None, dest_sq=None,
-                  spec=None,
                   dest_sq_mod=None,
-                  update_to_move=None):
+                  spec=None,
+                  update=True,
+                  orig2_sq=None, dest2_sq=None,
+                  dest2_sq_mod=None):
         """ Make move after decode
         Update to_move iff successful
         :orig_sq: origin square for move
         :dest_sq: destination square for move
         :spec: move specification
         :dest_sq_mod: alternate piece for destination e.g. promotion 
-        :update_to_move: change to_move default: True - change
+        :update: change board default: True - change
+        :orig2_sq: optional second origin sq e.g. for castle
+        :dest2_sq: optional second destination sq
+        :dest2_sq_mod: optional alternate piece for dest
         :returns: None if successful, else err msg
         """
-        if update_to_move is None:
-            update_to_move = self.update_to_move
         if orig_sq is None:
             err = f"make_move: spec:{spec} orig_sq:{orig_sq}"
             SlTrace.lg(err)
@@ -659,14 +747,26 @@ class Chessboard:
             SlTrace.lg(err)
             return err
         
-        self.save_move(orig_sq=orig_sq, dest_sq=dest_sq,
-                  spec=spec)
-        orig_piece = self.get_piece(sq=orig_sq, remove=True)
-        dest_piece = self.get_piece(sq=dest_sq, remove=True)
-        dest_update = dest_piece if dest_sq_mod is None else dest_sq_mod
-        self.place_piece(dest_update, dest_sq)
-        if update_to_move:
+        if update:
+            self.save_move(orig_sq=orig_sq, dest_sq=dest_sq,
+                    orig2_sq=orig2_sq, dest2_sq=dest2_sq,
+                    spec=spec)
+            orig_piece = self.get_piece(sq=orig_sq)
+            self.remove_piece(sq=orig_sq)
+            dest_update = orig_piece if dest_sq_mod is None else dest_sq_mod
+            self.place_piece(dest_update, dest_sq)
+            
+            # Optional second pair for such things as castling
+            if orig2_sq is not None:
+                orig2_piece = self.get_piece(sq=orig2_sq)
+                self.remove_piece(sq=orig2_sq)
+                if dest2_sq is not None:
+                    dest2_update = orig2_piece if dest2_sq_mod is None else dest_sq_mod
+                    self.place_piece(dest2_update, dest2_sq)
+            
             self.update_move()
+            if orig_sq is not None:
+                self.remove_piece(orig_sq)
         
     def to_piece_sq(self, piece=None, sq=None):
         """Produce piece_square even if piece is None
@@ -688,38 +788,108 @@ class Chessboard:
         return self.move_stack[-1]
             
     def save_move(self, orig_sq=None, dest_sq=None,
-                  spec=None, orig_sq_2=None, dest_sq_2=None):
+                  spec=None,
+                  orig2_sq=None, dest2_sq=None,
+                  dest2_sq_mod=None):
         """ Save move info, to enable undo
         :orig_sq: original square location
         :dest_sq: destination square location
+        :dest_sq_mod: optional modified destination piece NOT USED
         :spec: specification
-        :orig_sq_2: optional original square
-        :dest_sq_2: optional second destination square
+        :orig2_sq: optional original square
+        :dest2_sq: optional second destination square
+        :dest2_sq_mod: optional modified destination piece NOT USED
         """
-        orig_piece = self.get_piece(orig_sq)
-        orig_ps = self.to_piece_sq(orig_piece, orig_sq)
-        dest_piece = self.get_piece(dest_sq)
-        dest_ps = self.to_piece_sq(orig_piece, orig_sq)
         
-        if orig_sq_2 is not None:
-            orig_piece_2 = self.get_piece(orig_sq_2)
-            orig_ps_2 = self.to_piece_sq(orig_piece_2, orig_sq_2)
-        else:
-            orig_ps_2 = None
+        orig2_piece = None
+        if orig2_sq is not None:
+            orig2_piece = self.get_piece(orig2_sq)
         
-        if dest_sq_2 is not None:
-            dest_piece_2 = self.get_piece(dest_sq_2)
-            dest_ps_2 = self.to_piece_sq(dest_piece_2, dest_sq_2)
-        else:
-            dest_ps_2 = None
+        dest2_piece = None
+        if dest2_sq is not None:
+            dest2_piece = self.get_piece(dest2_sq)
 
         save_unit = ChessSaveUnit(self,
-                        orig_ps=orig_ps,
-                        dest_ps=dest_ps, spec=spec,
-                        to_move=self.to_move,
-                        orig_ps_2 = orig_ps_2,
-                        dest_ps_2 = dest_ps_2)        
+                        spec=spec,
+                        orig_sq=orig_sq,
+                        dest_sq=dest_sq,
+                        
+                        orig2_sq=orig_sq,
+                        dest2_sq=dest_sq)
         self.move_stack.append(save_unit)
+
+    """
+    Links to ChessPieceMovement via cpm
+    """
+
+    def get_move_to_sqs(self, piece, orig_sq=None):
+        """ Get list of squares this piece can legaly move to
+        including capture and promotion, based on board contents
+        One can use various functions to setup position:
+            self.clear_board() - clears board to empty
+            self.place_piece() - to setup additional pieces
+                    Note orig_sq implies piece, sq without actually
+                    populating the square
+            self.save_move(ChessSaveUnit) sets previous move 
+                e.g. self.save_move(ChessSaveUnit(self,
+                            orig_ps="pe7", dest_ps="pe5"))
+                        is a 2-square black pawn move which could
+                        be taken enpasant by a white pawn on d4
+        :piece: piece
+        :orig_sq: origin square
+        :prev_move: previous move (ChessSaveUnit)
+            default: get from board 
+        :returns: dictionary of candidate destination squares
+                Empty if none
+                None if error
+        """
+        return self.cpm.get_move_to_sqs(piece, orig_sq=orig_sq)
+'''            
+
+    def get_move_to_sqs(self, piece, orig_sq=None):
+        """ Get list of squares this piece can legaly move to
+        including capture and promotion, based on board contents
+        One can use various functions to setup position:
+            self.clear_board() - clears board to empty
+            self.place_piece() - to setup additional pieces
+                    Note orig_sq implies piece, sq without actually
+                    populating the square
+            self.save_move(ChessSaveUnit) sets previous move 
+                e.g. self.save_move(ChessSaveUnit(self,
+                            orig_ps="pe7", dest_ps="pe5"))
+                        is a 2-square black pawn move which could
+                        be taken enpasant by a white pawn on d4
+        :piece: piece
+        :orig_sq: origin square
+        :prev_move: previous move (ChessSaveUnit)
+            default: get from board 
+        :returns: dictionary of candidate destination squares
+                Empty if none
+                None if error
+        """
+        piece_type = piece.lower()
+        if piece_type not in Chessboard.piece_type_dir_d:
+            self.err = f"get_move_to_sqs {piece}"
+            return None
+        
+        if piece == 'p':
+            dir_type = 'p-black'    # reverse y direction
+        else:
+            dir_type = piece_type
+        dirs = Chessboard.piece_type_dir_d[dir_type]
+        if piece_type == 'p':
+            if not self.is_moved(orig_sq):
+                rep = 2
+            else:
+                rep = 1
+        elif piece_type in ['k', 'n']:
+            rep = 1
+        else:
+            rep = None  # Use default - max
+        return self.get_move_dir_sqs(piece, orig_sq=orig_sq,
+                                     list_dirs=dirs,
+                                     rep=rep)
+'''
         
 if __name__ == "__main__":
     from chessboard_print import ChessboardPrint
