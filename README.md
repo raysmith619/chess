@@ -22,6 +22,26 @@ such as JAWS and NVDIA.  My guess is that tkinter predates the modern APIs that 
 screen readers and other accessibility code which benefits the blind.
 #### Chess Board Display
 ![Simple Chess Display](Docs/simple_chess_board_wp.png)
+
+## Chess Attributes Views
+Although the game of chess is intertwined with different aspects we
+can divide to conquer.   The following divisions have been helpful to me.
+
+### Notation - Computer input and output
+It is often helpful to facilitate the input and output of chess moves and positions.
+We will restrict ourselves to what is termed algebraic notation.
+* squares: <lowercase letter a-h
+   denoting file (column) 1-8 from left to right from white's view>
+   <digit 1-8 denoting rank (row) from bottom to top fom white's view>
+** a1 - white square at left, lower corner of board from white's view
+** h8 - white square at right, upper corner of board from whites view
+* piece in square: letter k,q,r,b,n,p for black king,queen,rook,knight,pawn and 
+                          K,Q,R,B,N,P for white king,queen,rook,knight,pawn
+  e.g, Ka1 - white king at square a1
+* chess move: <Upper case piece K,Q,R,B,N,P><destination square>
+  e.g, Kf1 - king moves to f1.
+* chess move abreviations:
+  specification is usually abreviated: In pawn moves the 
 # Notation self test
 # Chess piece movement testing
 
