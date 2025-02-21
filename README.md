@@ -14,9 +14,14 @@ with resonable display capabilities, I hope to separate display from execution. 
 similar to my work in 
 
 
-## A set of screen shots for a simple program
-### Example User program in IDLE
-![Simple Chess Display](Docs/simple_chess_board_wp.PNG)
+
+### Some views
+Current display code uses Python's tkinter module.  In the future I plan to migrate
+to wxPython, mainly because wxPython is more compatible with todays screen readers
+such as JAWS and NVDIA.  My guess is that tkinter predates the modern APIs that aid
+screen readers and other accessibility code which benefits the blind.
+#### Chess Board Display
+![Simple Chess Display](Docs/simple_chess_board_wp.png)
 # Notation self test
 # Chess piece movement testing
 
