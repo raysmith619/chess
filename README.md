@@ -33,18 +33,49 @@ We will restrict ourselves to what is termed algebraic notation.
 * squares: <lowercase letter a-h
    denoting file (column) 1-8 from left to right from white's view>
    <digit 1-8 denoting rank (row) from bottom to top fom white's view>
-** a1 - white square at left, lower corner of board from white's view
-** h8 - white square at right, upper corner of board from whites view
-* piece in square: letter k,q,r,b,n,p for black king,queen,rook,knight,pawn and 
-                          K,Q,R,B,N,P for white king,queen,rook,knight,pawn
-  e.g, Ka1 - white king at square a1
+   - a1 - white square at left, lower corner of board from white's view
+   - h8 - white square at right, upper corner of board from whites view
+* piece in square:
+  - letter k,q,r,b,n,p for black king,queen,rook,knight,pawn
+  -        K,Q,R,B,N,P for white king,queen,rook,knight,pawn
+    - Ka1 - white king at square a1
+    - ka1 - black king at square a1
 * chess move: <Upper case piece K,Q,R,B,N,P><destination square>
-  e.g, Kf1 - king moves to f1.
-* chess move abreviations:
-  specification is usually abreviated: In pawn moves the 
-# Notation self test
-# Chess piece movement testing
+  - Kf1 - king moves to f1. (color is determined by who (white or black) is movine
+* chess move abreviations: specification is usually abreviated
+  - In pawn moves the the explicit piece letter is omitted
+  - The orig square is omitted and determined by what piece(s) can move to
+    the destination.
+  - If more than one piece of the specified type and
+    current color can move to the destination, file/rank specifications,
+    following the Piece letter are used.
 
+
+###  Board physics
+The board contents and opperation should be distinct from the display because
+in chess, one often needs to have insight about board positions that never
+occurr or are displayed.  For example one might want to know all the possible
+moves a piece can make, so as to pick the most advantageous one.
+We place most of this operation in a class **Chessboard**, residing in chessboard.py.
+This class contains the initial piece setup, the current board pieces and their
+locations, which pieces have moved, history of moves to support "undo" or aid
+checking for enpasant.
+
+#### Piece Movement
+As a subsection of "Board Physics" we consider chess piece movement.  We encapsulate
+this in the class **ChessPieceMovement**, contained in chess_piece_movement.py.  This
+class's most visible function is **get_move_to_sqs**, which returns all the squares
+to which a particular piece may move, including any possible captures.  Note that
+as in other partitioned systems, this function often has to refer to external
+objects such as the Chessboard.
+
+#### Move Notation
+Because chess move notation is so visible in the process of playing and displaying
+chess we have placed our notational move parsing in a class **ChessMoveNotation**.
+The primary functions used in parsing a move specification are **decode_spec_parts**
+and **decode_complete**.  The function **decode_spec_parts** parses out what can be done with little or no knowledge of the board status  The function **decode_complete** takes the
+results of **decode_spec_parts**, plus board knowledge and completes the move spec
+parsing.
 # resource_lib
 ## Common files / support for other projects
 Contains files used to support other projects.
