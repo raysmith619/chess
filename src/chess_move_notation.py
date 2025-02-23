@@ -425,10 +425,15 @@ if __name__ == "__main__":
     SlTrace.clearFlags()
     #SlTrace.setFlags("print_board,no_ts")
     SlTrace.setFlags("no_ts")
+    
+    import argparse
+    
     from chess_move import ChessMove  # For minimal support
     from chessboard import Chessboard  # For minimal support
     from chessboard_print import ChessboardPrint
-    
+
+    show_passes = True          # Show passed tests
+    quit_on_fail = True         # Quit on first fail    
     just_parts = False          # Just do/display the notation parsing
     just_complete = False       # Just display complete parseing
     just_board = False          # Just display the board state
@@ -450,7 +455,7 @@ if __name__ == "__main__":
         """
         if desc is None:
             desc = ""
-        display_options = "visual"
+        display_options = "visual_s"
         #display_options = None
         bd_str = cbp.display_board_str(display_options=display_options)
         SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)                
@@ -469,6 +474,43 @@ if __name__ == "__main__":
     Nc3+ 41.Kc1 Rc2# 0-1
     """
     
+
+    parser = argparse.ArgumentParser()
+    parser.add_argument('-m', '--moves', default=moves,
+                        help=("Move string"
+                              " (default:moves"))
+    parser.add_argument('-f', '--file', default=None,
+                        help=("Moves file"
+                              " (default:use string"))
+
+    parser.add_argument('-p', '--just_parts', default=just_parts,
+                        help=("Just print initial parts parsing"
+                              " (default:no restriction"))
+    parser.add_argument('-c', '--just_complete', default=just_complete,
+                        help=("Just print complete move parsing"
+                              " (default:no restriction"))
+    parser.add_argument('-b', '--just_board', default=just_board,
+                        help=("Just print board after move"
+                              " (default:no restriction"))
+    parser.add_argument('-s', '--show_passes', action='store_true', default=show_passes,
+                        help=(f"Show passes"
+                              f" (default: {show_passes}"))
+    parser.add_argument('-q', '--quit_on_fail', action='store_true', default=quit_on_fail,
+                        help=(f"Quit on first failure"
+                              f" (default: {quit_on_fail}"))
+
+    args = parser.parse_args()             # or die "Illegal options"
+    
+    file = args.file
+    moves = args.moves
+    just_parts = args.just_parts
+    just_complete = args.just_complete
+    just_board = args.just_board
+    show_passes = args.show_passes
+    quit_on_fail = args.quit_on_fail
+    
+    
+    
     move_specs = ChessMoveNotation.game_to_specs(moves) 
     for move_spec in move_specs:
         cm = ChessMove(cb)
@@ -480,6 +522,9 @@ if __name__ == "__main__":
         stage = "notation"
         if cmn.decode_spec_parts(move_spec):
            SlTrace.lg(f"{move_no_str} {stage} Error: {move_spec}: {cmn.err}")
+           if quit_on_fail:
+               break
+           
         else:
             if not just_complete and not just_board:
                 SlTrace.lg(f"{move_no_str} {stage} {cmn}")
@@ -491,7 +536,9 @@ if __name__ == "__main__":
                 SlTrace.lg(f"{move_no_str} {stage} {cmn.err}")
                 bd_str = cbp.display_board_str()
                 SlTrace.lg("\n"+bd_str)                
-                break
+                if quit_on_fail:
+                    break
+                continue
             else:
                 if not just_board:
                     SlTrace.lg(f"{move_no_str} {stage} {cmn}")
