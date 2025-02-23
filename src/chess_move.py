@@ -426,7 +426,9 @@ class ChessMove:
         """
         return self.board.ps_to_sq(ps=ps)
     
-    def make_move(self, orig_sq=None, dest_sq=None,
+    def make_move(self,
+                  just_notation=None,
+                  orig_sq=None, dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
                   update=True,
@@ -434,6 +436,8 @@ class ChessMove:
                   dest2_sq_mod=None):
         """ Make move after decode
         Update to_move iff successful
+        :just_notation: just for notation - no checks
+                default: False
         :orig_sq: origin square for move
         :dest_sq: destination square for move
         :spec: move specification
@@ -461,7 +465,8 @@ class ChessMove:
         if dest2_sq_mod is None:
             dest2_sq_mod = self.dest2_sq_mod
                 
-        return self.board.make_move(orig_sq=orig_sq,
+        return self.board.make_move(just_notation=just_notation,
+                                    orig_sq=orig_sq,
                                     dest_sq=dest_sq,
                                     dest_sq_mod=dest_sq_mod,
                                     orig2_sq=orig2_sq,

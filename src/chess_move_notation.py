@@ -371,7 +371,8 @@ class ChessMoveNotation:
         """
         return self.cm.piece_type_to_piece(type=type, to_move=to_move)
     
-    def make_move(self, orig_sq=None, dest_sq=None,
+    def make_move(self, just_notation=False,
+                  orig_sq=None, dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
                   update=True,
@@ -379,6 +380,8 @@ class ChessMoveNotation:
                   dest2_sq_mod=None):
         """ Make move after decode
         Update to_move iff successful
+        :just_notation: just for notation - no checks
+                default: False
         :orig_sq: origin square for move
         :dest_sq: destination square for move
         :spec: move specification
@@ -406,7 +409,8 @@ class ChessMoveNotation:
         if dest2_sq_mod is None:
             dest2_sq_mod = self.dest2_sq_mod
                 
-        return self.cm.make_move(orig_sq=orig_sq,
+        return self.cm.make_move(just_notation=just_notation,
+                                    orig_sq=orig_sq,
                                     dest_sq=dest_sq,
                                     dest_sq_mod=dest_sq_mod,
                                     orig2_sq=orig2_sq,
@@ -425,11 +429,32 @@ if __name__ == "__main__":
     from chessboard import Chessboard  # For minimal support
     from chessboard_print import ChessboardPrint
     
+    just_parts = False          # Just do/display the notation parsing
+    just_complete = False       # Just display complete parseing
+    just_board = False          # Just display the board state
+    #just_parts = True
+    #just_complete = True
+    #just_board = True
+    include_board = True
+    
     cb = Chessboard()
     cb.standard_setup()
     cbp = ChessboardPrint(cb)
     cm = ChessMove(cb)
     cmn = ChessMoveNotation(cm)
+    
+    def display_board(desc=None):
+        """ Display current board state
+        :desc: description
+            default: no description
+        """
+        if desc is None:
+            desc = ""
+        display_options = "visual"
+        #display_options = None
+        bd_str = cbp.display_board_str(display_options=display_options)
+        SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)                
+    
     moves = """
     1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O
     5.Bf4 d5 6.Qb3 dxc4 7.Qxc4 c6 8.e4 Nbd7
@@ -443,31 +468,39 @@ if __name__ == "__main__":
     37.Ke1 Bb4+ 38.Kd1 Bb3+ 39.Kc1 Ne2+ 40.Kb1
     Nc3+ 41.Kc1 Rc2# 0-1
     """
+    
     move_specs = ChessMoveNotation.game_to_specs(moves) 
     for move_spec in move_specs:
         cm = ChessMove(cb)
         move_no = cm.get_move_no()
+        to_move = cm.get_to_move()
         move_no_str = f"move {move_no:2}: "
-        if cm.get_to_move() == "black":
+        if   to_move == "black":
             move_no_str = " " * len(move_no_str)
         stage = "notation"
         if cmn.decode_spec_parts(move_spec):
            SlTrace.lg(f"{move_no_str} {stage} Error: {move_spec}: {cmn.err}")
         else:
-            SlTrace.lg(f"{move_no_str} {stage} {cmn}")
+            if not just_complete and not just_board:
+                SlTrace.lg(f"{move_no_str} {stage} {cmn}")
+                if just_parts:
+                    cmn.make_move(just_notation=True)
+                    continue
             stage = "+bd info"
             if cmn.decode_complete():
                 SlTrace.lg(f"{move_no_str} {stage} {cmn.err}")
                 bd_str = cbp.display_board_str()
                 SlTrace.lg("\n"+bd_str)                
+                break
             else:
-                SlTrace.lg(f"{move_no_str} {stage} {cmn}")
-
-        cb.save_move(cm)
+                if not just_board:
+                    SlTrace.lg(f"{move_no_str} {stage} {cmn}")
+                
         cmn.make_move()
-        if SlTrace.trace("print_board"):
-            bd_str = cbp.display_board_str()
-            SlTrace.lg("\n"+bd_str)         # After each move                
+        if include_board or just_board or SlTrace.trace("print_board"):
+            desc = f"After Move: {move_no} {to_move} {cmn.spec}"
+            display_board(desc)
+
     SlTrace.lg(f"End of selftest from {__file__}")
     if cmn.err_count > 0:
         SlTrace.lg(f"Parse Errors:{cmn.err_count}")

@@ -11,10 +11,20 @@ from select_trace import SlTrace
 class ChessPieceMovement:
 
     """
-    Piece type movement directions
-    Number of repititions depends on piece
-    and in the case of pawns, the conditions 1'st move, after
-    (x,y)
+    Piece movement
+    The following determines the possible piece movement.
+    In general, a piece's possible movement is specified by:
+        1. list of directions each of the form (x,y,special)
+            x is change in file(column)
+            y is change in rank(row) (as viewed by white)
+            special: "move" - use only if a move
+                    "capture" - use only if a capture
+        2. repition, number of times which the direction change
+           can be applied.
+            The number of repititions depends on piece type.
+                In the case of pawns: 2 for first move, else 1
+                In case of knight: 1
+                Others: number of rows or columns
     by piece or piece capture, if different than move
     arranged in clockwise, starting by up/to right
     NOTE: change is in the "forward" direction, negated for black
@@ -30,7 +40,7 @@ class ChessPieceMovement:
     """      
     piece_type_dir_d = {
         # lists of tuples
-        #   PAIR: (X,Y), TRIPLE: (x,y,"capture"/"move")
+        #   PAIR: (X,Y) or TRIPLE: (x,y,"capture"/"move")
         #   "capture" only if move is a capture
         #   "move" only move is not capture
         #   default: move, if empty or capture if not empty

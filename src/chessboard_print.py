@@ -1,10 +1,12 @@
 #chessboard_print.py 10Feb2025  crs
 import re
 
+from select_trace import SlTrace
+
 class ChessboardPrint:
     def __init__(self,
                  board,
-                 display_options="sqare_notes",
+                 display_options=None,
                 ):
         self.board = board
         self.display_options = display_options
@@ -13,12 +15,23 @@ class ChessboardPrint:
                       display_options=None):
         display_str = self.display_board_str(include_pieces=include_pieces,
                                              display_options=display_options)
-        print(f"\n{display_str}\n")
+        SlTrace.lg(f"\n{display_str}\n", replace_non_ascii=None)
         
     def display_board_str(self, mw=None, include_pieces=True,
                           display_options=None):
         """ Display board, always include pieces
+        :include_pieces: include current pieces / position in display
+                default: True - show the pieces
+        :display_options: "visual" - for sighted
+                default: Provide display targeted for blind / Braille processing
         """
+        figure_pieces = {
+            'p': '♟', 'r': '♜', 'n': '♞', 'b': '♝', 'q': '♛', 'k': '♚',
+            'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
+            'fullSQ': chr(0x25A0),
+            'emptySQ': chr(0x25A1),
+            'b_sm_sq' :chr(0x25AA),
+        }
         if display_options is None:
             display_options = self.display_options
         board_str = ""    
@@ -47,6 +60,12 @@ class ChessboardPrint:
         
         black_sq = "'"*4
         white_sq = "`"*len(black_sq)
+        if display_options is not None and "visual" in display_options:
+            black_sq = " "+figure_pieces['b_sm_sq']+"  "
+            white_sq = " "+figure_pieces['emptySQ']+"  "
+        if display_options is not None and "visual_s" in display_options:
+            black_sq = figure_pieces['fullSQ']
+            white_sq = figure_pieces['emptySQ']
         for ir in reversed(range(board.nsqy)):
             rank = str(ir+1)
             row_str = f"{rank}:"
@@ -55,35 +74,53 @@ class ChessboardPrint:
                 if piece is None:
                     sq = black_sq if (ir+ic)%2==0 else white_sq
                     sq_spec = chr(ord('a')+ic)+str(ir+1)    # e.g. a1
-                    if "square_notes" in display_options:
-                        sq = sq[0]+sq_spec+sq[-1]      # surrounding
-                    row_str += f" {sq}"     # For visible blank
-                else:
-                    if piece.isupper():
-                        row_str += f" [.{piece.lower()}]"
+                    if display_options is not None and "visual" in display_options:
+                        sq = " "+sq                        
+                    elif display_options is not None and "square_notes" in display_options:
+                        sq = " "+sq[0]+sq_spec+sq[-1]      # surrounding
+                    elif display_options is not None and "visual_s" in display_options:
+                        sq = sq
                     else:
-                        row_str += f" [ {piece}]"
+                        sq = " "+sq+""
+                    row_str += f"{sq}"     # For visible blank
+                else:
+                    if display_options is not None and "visual" in display_options:
+                        row_str += f"  {figure_pieces[piece]}  "
+                    elif display_options is not None and "visual_s" in display_options:
+                        row_str += f"{figure_pieces[piece]}"
+                    else:
+                        if piece.isupper():
+                            row_str += f" [.{piece.lower()}]"
+                        else:
+                            row_str += f" [ {piece}]"
             board_str += row_str + "\n"
         sep_str = "-"*len(row_str)
         board_str += sep_str + "\n"
-        ranks_str = " , "
+        ranks_str = ", "
         for ic in range(board.nsqx):
-            rank_str = ", "+chr(ord('a')+ic)+" ,"
+            if display_options is not None and "visual_s" in display_options:
+                rank_str = chr(ord('a')+ic)+" "
+            else:
+                rank_str = ", "+chr(ord('a')+ic)+" ,"
             ranks_str += rank_str    
+        if display_options is not  None and "visual" in display_options:
+            ranks_str = ranks_str.replace(","," ")
         board_str += ranks_str
         return board_str
     
 if __name__ == "__main__":
     from chessboard import Chessboard
+    display_options="visual"
+    #display_options="visual_s"
+
+    cb1 = Chessboard(pieces='FEN:rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
+    cbp1 = ChessboardPrint(cb1)
     
-    cb = Chessboard(pieces='FEN:rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR')
-    cbp = ChessboardPrint(cb)
-    cbp.display_board()
-    cbp.display_board(display_options="square_notes")
-    
-    cb = Chessboard(pieces=':Kc1Qe1kh7 w')
-    cbp = ChessboardPrint(cb)
-    cbp.display_board()
-    cbp.display_board(display_options="square_notes")
+    cb2 = Chessboard(pieces=':Kc1Qe1kh7 w')
+    cbp2 = ChessboardPrint(cb2)
+    for option in [None, "visual"]:
+        SlTrace.lg(f"\nOption: {option}")   
+        for cbp in [cbp1, cbp2]:
+            cbp.display_board(display_options=option)
     
     

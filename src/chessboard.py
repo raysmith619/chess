@@ -742,12 +742,14 @@ class Chessboard:
         :sq: destination square, e.g. e1
         :returns: previous contents of destination sq, None if empty
         """
-        assert(sq is not None)
+        if not self.just_notation:
+            assert(sq is not None)
         prev_piece = self.get_piece(sq)
         self.board_setting[sq] = piece
         return prev_piece
     
     def make_move(self,
+                  just_notation=False,
                   orig_sq=None,
                   prev_orig_sq_moved=None,
                   dest_sq=None,
@@ -761,6 +763,8 @@ class Chessboard:
         """ Make move after decode
         Update to_move iff successful
         sets/records if orig_sq,orig2 pieces have previouly been moved
+        :just_notation: just for notation - no checks
+                default: False
         :orig_sq: origin square for move
         :prev_orig_sq_moved: True if orig_sq moved previously
                 default: get state before move
@@ -775,12 +779,13 @@ class Chessboard:
         :dest2_sq_mod: optional alternate piece for dest
         :returns: None if successful, else err msg
         """
-        if orig_sq is None:
+        self.just_notation = just_notation      # To notify sub callers
+        if orig_sq is None and not just_notation:
             err = f"make_move: spec:{spec} orig_sq:{orig_sq}"
             SlTrace.lg(err)
             return err
         
-        if dest_sq is None:
+        if dest_sq is None and not just_notation:
             err = f"make_move: spec{spec} dest_sq:{dest_sq}"
             SlTrace.lg(err)
             return err
