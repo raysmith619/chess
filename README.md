@@ -220,7 +220,34 @@ After Move: 41 black Rc2# 0-1
  , , a ,, b ,, c ,, d ,, e ,, f ,, g ,, h ,
  
 ```
+##### Latest attempt for printable board of the sighted
+Sadly the file and pasted versions of the output do not reflect
+the same spaceing shown in the live printed output.  Work will
+continue.
+```
+8: ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜ 
+7: ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟ 
+6: □  :  □  :  □  :  □  : 
+5: :  □  :  □  :  □  :  □ 
+4: □  :  □  :  □  :  □  : 
+3: :  □  :  □  :  □  :  □ 
+2: ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙ 
+1: ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖ 
+--------------------------
+   a  b  c  d  e  f  g  h
 
+8: □  :  □  :  □  :  □  : 
+7: :  □  :  □  :  □  :  ♚ 
+6: □  :  □  :  □  :  □  : 
+5: :  □  :  □  :  □  :  □ 
+4: □  :  □  :  □  :  □  : 
+3: :  □  :  □  :  □  :  □ 
+2: □  :  □  :  □  :  □  : 
+1: :  □  ♔  □  ♕  □  :  □ 
+--------------------------
+   a  b  c  d  e  f  g  h
+
+```
 ###  Board physics
 The board contents and opperation should be distinct from the display because
 in chess, one often needs to have insight about board positions that never
