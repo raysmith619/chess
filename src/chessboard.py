@@ -6,6 +6,8 @@ Goals:
     efficient access
 """
 import re
+import copy
+
 from select_trace import SlTrace
 
 from chess_piece_images import ChessPieceImages
@@ -59,7 +61,15 @@ class Chessboard:
         self.set_assert_fail_max(10)
         self.cpm = ChessPieceMovement(self)
         
-                                  
+    def copy(self):
+        """ Copy information for independant opperation
+        """
+        cb_new = copy.copy(self)        
+        cb_new.move_stack = self.move_stack[:]
+        cb_new.board_setting = copy.copy(self.board_setting)
+        cb_new.moved_pieces_d = copy.copy(self.moved_pieces_d)
+        return cb_new
+                              
     def setup_board(self):
         """ Set board internals
         especially board for efficient access to board contents
@@ -825,16 +835,23 @@ class Chessboard:
         p = "" if piece is None else piece
         return p + sq
 
-    def get_prev_move(self):
-        """ Get previous move, with no change
+    def get_prev_move(self, back=-1):
+        """ Get previous move, with no change,
+            assuming we have not  saved the current
+            move.  After save_move, previous move(back==-1)
+            would be the current move, and -2 would get
+            the previouse move
         Used to check for thigs suchas E.P
+        :back: look back
+            default: -1  # -2 is one before last
         :returns: previous move (ChessSaveUnit)
             None if no previous move saved
+        
         """
-        if len(self.move_stack) == 0:
+        if len(self.move_stack) < -back:
             return None
         
-        return self.move_stack[-1]
+        return self.move_stack[back]
             
     def save_move(self,
                 orig_sq=None,

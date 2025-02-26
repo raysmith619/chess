@@ -67,7 +67,8 @@ class ChessMove:
         
     def decode(self, spec):
         """ Decode move spec, in preparation for verification,
-        execution.
+        execution.  Results are updated for successful parse
+        :spec: move specification
         """
         
         self.setup()    # Setup default settings
@@ -78,14 +79,12 @@ class ChessMove:
         # Parse basic notation
         if self.cmn.decode_spec_parts(spec=spec):
             return self.cmn.err
-                
-        if self.cmn.is_castle:
-            self.cmn.decode_castle()    # complete castle parsing
+        
+        # Complete parsing
+        if self.cmn.decode_complete():        
             return self.cmn.err         # return completed
-
-        # Find orig_sq
-        if self.cmn.decode_orig_sq():
-            return self.cmn.err
+        
+        self.cmn.make_move_update()     # Update parse results
         
     def get_start_piece(self, start_str, to_move=None):
         """ Determine starting piece, given spec string

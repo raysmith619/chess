@@ -35,6 +35,7 @@ class ChessboardPrint:
             'P': '♙', 'R': '♖', 'N': '♘', 'B': '♗', 'Q': '♕', 'K': '♔',
             'fullSQ': chr(0x25A0),
             'emptySQ': chr(0x25A1),
+            'sq_diag' : chr(0x25A7),
             'b_sm_sq' :chr(0x25AA),
             'vert_line' : chr(0xFF5C),
             'horz_line' : chr(0x23AF),
@@ -46,10 +47,11 @@ class ChessboardPrint:
             '6_per_em' : chr(0x2006),
             'thin_sp' : chr(0x2009),
             'hair_sp' : chr(0x200A),
-            'zero_sp' : chr(0x200B)
+            'zero_sp' : chr(0x200B),
         }
         w_sq = figure_pieces['emptySQ']
         bk_cx = figure_pieces['black_cx_hatch']
+        sq_diag = figure_pieces['sq_diag']
         emb2 = figure_pieces['2_per_em']
         emb3 = figure_pieces['3_per_em']
         emb4 = figure_pieces['4_per_em']
@@ -98,7 +100,7 @@ class ChessboardPrint:
             vert_div_sq = figure_pieces['vert_line']
             white_sq = ""+" "+""
         if "visual_s" in display_options:
-            #black_sq = emb4+bk_cx+emb4
+            #black_sq = emb4+"bk_cx"+emb4
             black_sq = emb4+":"+emb4
             white_sq = emb4+w_sq+emb4
         

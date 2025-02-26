@@ -40,7 +40,8 @@ class ChessMoveNotation:
         self.cm = chess_move
         self.err_count = 0          # Count of errors      
         self.err_first = None       # first error, if any   
-        self.err_first_move_no = 0  # first error move no        
+        self.err_first_move_no = 0  # first error move no
+                
     def __str__(self):
         """ String form for debugging/analysis
         """
@@ -327,6 +328,19 @@ class ChessMoveNotation:
             moves.append(bmove)
         return moves
 
+
+    """
+    Links to Chessboard
+    """
+
+    def get_prev_move(self):
+        """ Get previous move, with no change
+        Used to check for thigs suchas E.P
+        :returns: previous move (ChessSaveUnit)
+            None if no previous move saved
+        """
+        return self.self.board.get_prev_move()      # indirect rather than add board just for this
+
     """
     Links to ChessMove
     """
@@ -371,6 +385,21 @@ class ChessMoveNotation:
         """
         return self.cm.piece_type_to_piece(type=type, to_move=to_move)
     
+    def make_move_update(self, move=None):
+        """ Update move object with parsing results
+        :move: move object to update
+            default: use self.move
+        """
+        if move is None:
+            move = self.cm
+        move.orig_sq = self.orig_sq
+        move.dest_sq = self.dest_sq
+        move.spec = self.spec
+        move.dest_sq_mod = self.dest_sq_mod
+        move.orig2_sq = self.orig2_sq
+        move.dest2_sq = self.dest2_sq
+        move.dest2_sq_mod = self.dest2_sq_mod
+        
     def make_move(self, just_notation=False,
                   orig_sq=None, dest_sq=None,
                   dest_sq_mod=None,
@@ -431,7 +460,8 @@ if __name__ == "__main__":
     from chess_move import ChessMove  # For minimal support
     from chessboard import Chessboard  # For minimal support
     from chessboard_print import ChessboardPrint
-
+    from chessboard_display import ChessboardDisplay
+    
     show_passes = True          # Show passed tests
     quit_on_fail = True         # Quit on first fail    
     just_parts = False          # Just do/display the notation parsing
@@ -441,13 +471,20 @@ if __name__ == "__main__":
     #just_complete = True
     #just_board = True
     include_board = True
-    
+    gui_display = True
     cb = Chessboard()
     cb.standard_setup()
     cbp = ChessboardPrint(cb)
+
     cm = ChessMove(cb)
     cmn = ChessMoveNotation(cm)
-    
+
+
+    if gui_display:
+        import tkinter as tk
+        mw = tk.Tk()   # Controlling window
+
+    cbds = []
     def display_board(desc=None):
         """ Display current board state
         :desc: description
@@ -458,7 +495,13 @@ if __name__ == "__main__":
         display_options = "visual_s"
         #display_options = None
         bd_str = cbp.display_board_str(display_options=display_options)
-        SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)                
+        SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
+        if gui_display:
+            mw2 = tk.Toplevel()     # Subsequent window                
+            cbd = ChessboardDisplay(cb.copy())
+            cbds.append(cbd)
+            cbd.display_board(title=desc)
+            cbd.update()
     
     moves = """
     1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O
@@ -508,7 +551,7 @@ if __name__ == "__main__":
     just_board = args.just_board
     show_passes = args.show_passes
     quit_on_fail = args.quit_on_fail
-    
+        
     
     
     move_specs = ChessMoveNotation.game_to_specs(moves) 
@@ -545,7 +588,12 @@ if __name__ == "__main__":
                 
         cmn.make_move()
         if include_board or just_board or SlTrace.trace("print_board"):
-            desc = f"After Move: {move_no} {to_move} {cmn.spec}"
+            desc = f"After Move: {move_no}" 
+            if to_move == "black":
+                prev_white_move = cb.get_prev_move(back=-2)   # After save
+                prev_desc = prev_white_move.spec
+                desc += f" {prev_desc}"
+            desc += f" {cmn.spec}"
             display_board(desc)
 
     SlTrace.lg(f"End of selftest from {__file__}")
@@ -553,4 +601,5 @@ if __name__ == "__main__":
         SlTrace.lg(f"Parse Errors:{cmn.err_count}")
         SlTrace.lg(f"First error: move {cmn.err_first_move_no}:"
                    f" {cmn.err_first}")
-         
+    if gui_display:
+        mw.mainloop()     
