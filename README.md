@@ -27,7 +27,18 @@ screen readers and other accessibility code which benefits the blind.
 Although the game of chess is intertwined with different aspects we
 can divide to conquer.   The following divisions have been helpful to me.
 
-### Chess Notation Review - Computer input and output
+### Chess Notation Review - Record of the game
+Chess notation is important because, using it we can present and preserve the complete
+history of the game.  In a relatively few characters, we can see exactly
+how the great chess grandmaster Alexander Alekhine defeted Paul Saladin Leonhardt
+on July 23 1910.  Before we review the popular algebraic notation below, remind ourselves
+of other notations such as the Descriptive notation (e.g NB3 - knight to biship 3,
+Nf3 in Algebraic).  Note, possibly the most concise notation, may be Telegraph
+in which each move is represented by four digits which specify the origin square file and rank
+with the first two digits and the destination square with the second two digits.  A much more
+extensive list and description of chess notation can be found other places, e.g. Wikipedia: https://en.wikipedia.org/wiki/Chess_notation#:~:text=Some%20special%20methods%20of%20notation,into%20a%20composite%20Latin%20word.
+
+#### Algebraic Notation
 It is often helpful to facilitate the input and output of chess moves and positions.
 We will restrict ourselves to what is termed algebraic notation.
 * squares: <lowercase letter a-h
