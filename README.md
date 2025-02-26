@@ -62,6 +62,71 @@ We will restrict ourselves to what is termed algebraic notation.
     following the Piece letter are used.
 
 #### Move Notation Parsing
+Our primary interest
+is in the process of interpreting the abreviations and determining the exact move
+specification.  Algebraic notation, unlike Long Algebraic
+has a number of abbreviations which provide significant space savings. This is
+important because the notation is used constantly in chess play, by chess players
+writing down every move.
+My description below is a compromise.  My hope is to present to two
+audiences, the chess player with little or no programming knowledge and the programmer
+with little or now chess knowledge.  I appologize for going over areas that the
+reader knowledge or experience exceeds my own.
+##### What's in a move
+A chess move changes the game state.  In general this state involves the movement of
+a chess piece from an origin square to a destination square, possibly involving a capture,
+or check/mate or game result.
+###### move information
+   - Piece (e.g King, Queen, Pawn)
+   - Original square (e.g. e1)
+   - Destination square
+   - Special move (e.g., castle)
+   - Optional information (could be infered, but nice to see)
+      - capture
+      - check / checkmate
+      - game result (e.g., 1-0 white win)
+
+###### Our parsing attack
+   - Two parts
+        - Look at specification alone, with little or no board information
+        - Take initial results, combine with board information to complete parsing
+   - Notation alone
+      - Peal specification like an onion
+      - start from right end, removing parts if/when found
+         - gather game information off right end
+         - Check if check(+), or checkmate(#)
+         - Check for special moves, castle (O-O,O-O-O) - done if so
+         - Gather destination square
+              - file+rank   (e.g., e4)
+              - file        (e.g., e:d)
+      - starting from left
+           - gather piece  (e.g. Knight(N) from Nf3)
+                - if no piece, assume pawn move (e.g., e4)
+           - collect piece modifier to disambiguate from possibles, e.g., Nbd7
+      - After specification parsing we generally know the following:
+         - Game result
+         - check/checkmate
+         - capture
+      The previous results could be inferred by the complete parsing + board info
+         - Piece type (not including whose move)
+         - Destination square or file
+         - Special move
+    
+   - Complete parsing, using board information
+   In general the parsing at this point completes the determination of the following:
+      - piece(s) to be moved
+      - origin square(s) - castle has two
+      - destination square(s)
+   Parsing steps, using board information: 
+        - if castle, complete castle parsing: board info: whose move
+        - Complete piece determination: board info: whose move        
+        - Complete parsing destination square: resolve file-only spec
+        - Complete parsing origin square: board info: what pieces in what squares,
+          can move/capture to destination sq
+        
+
+
+##### Programming composition
 Because chess move notation is so visible in the process of playing and displaying
 chess we have placed our notational move parsing in a class **ChessMoveNotation**.
 The primary functions used in parsing a move specification are **decode_spec_parts**
