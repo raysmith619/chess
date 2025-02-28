@@ -35,6 +35,31 @@ class ChessboardDisplay:
         self.setup_chess_piece_Images()
         self.chess_piece_images = ChessPieceImages()
         ChessboardDisplay.window_list.append(self)
+        self.mw.bind('<KeyPress>', self.on_key_press)
+        self.on_cmd = None          # To hold user display command processor
+
+    def set_cmd(self, on_cmd):
+        """ Setup cmd link
+        :on_cmd: cmd(input) cmd
+        :returns: previous on_cmd
+        """
+        old_cmd = self.on_cmd
+        self.on_cmd = on_cmd
+        return old_cmd
+    
+    """
+    Capture std keyboard key presses
+    and redirect they to input
+    """
+    def on_key_press(self, event):
+        keysym = event.keysym
+        self.buttonClick(input=keysym)
+
+
+    # function for button click
+    def buttonClick(self, input):
+        if self.on_cmd is not None:
+            self.on_cmd(input)
 
     def setup_board_canvas(self, mw):
         """ Setup board frame, canvas
@@ -53,6 +78,8 @@ class ChessboardDisplay:
         canvas.pack(side=tk.TOP, expand=tk.Y, fill=tk.BOTH)
         self.canvas = canvas
         self.rank_font = tk.font.Font(size=-int(.2*self.sq_size))
+
+
 
     def mainloop(self):
         """ Do mainloop

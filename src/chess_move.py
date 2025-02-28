@@ -12,6 +12,8 @@ class ChessMove:
         self.board = board
         if to_move is not None:
             self.set_to_move(to_move)
+        self.move_no = board.get_move_no()
+        self.to_move = board.get_to_move()
         self.setup()        # Initialize state    
         self.cmn = ChessMoveNotation(self)
         self.cpm = ChessPieceMovement(board)
@@ -362,7 +364,7 @@ class ChessMove:
         """ Get chess game move number, assuming
         started with white
         """
-        return self.board.get_move_no()
+        return self.move_no
         
     def get_piece(self, sq=None, file=None, rank=None, remove=False):
         """ Get piece at sq, None if empty

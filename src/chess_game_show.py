@@ -46,6 +46,11 @@ cbp = None
 def check_user(prompt):
     """ Wait for user instructions
         default: execute/display move
+        returns:
+            s, "" ENTER for step
+            u - undo previous move
+            r - redo last undo
+
     """
     inp = input(prompt)
     return inp
@@ -71,7 +76,6 @@ def display_board(desc=None, new_display=False):
         mw2 = tk.Toplevel()     # Subsequent window                
         cbd = ChessboardDisplay(cb, mw=mw2)
     cbd.display_board(title=desc)
-    #cbd.display_pieces(title=desc)    
     cbd.update()
 
 
@@ -100,40 +104,116 @@ file = args.file
 moves = args.moves
 quit_on_fail = args.quit_on_fail
     
-#step_through = True
 mw = tk.Tk()
 cb = Chessboard()
 move_specs = ChessMoveNotation.game_to_specs(moves)
+move_spec_list = move_specs[:]       # Copy list
 cb.standard_setup()
-cbd = ChessboardDisplay(cb, mw=mw)
+cbd = ChessboardDisplay(cb, mw=mw, title="Begin Game")
 cbp = ChessboardPrint(cb)
 cbd.display_board()
 #cbd.mainloop()
- 
-for move_spec in move_specs:
-    cbd.update()
-    if step_through:
-        inp = check_user(move_spec)
+
+def get_move_desc(cm):
+    """ Get move descriptor / title
+        AFTER move has been made
+    :cm: move ChessMove
+        <move_no>: <white move spec>
+            OR
+        <move_no>: <white move spec> <black move spec>
+    """
+    if cm.board.get_prev_move() is None:
+        return "Begin Game"
+    
+    move_spec = cm.spec
+    move_no = cm.move_no
+    to_move = cm.to_move
+    desc = f"{move_no}:"
+    if to_move == "black":
+        prev_move = cm.board.get_prev_move(-2)
+        if prev_move is not None:
+            prev_spec = prev_move.spec
+            desc += f" {prev_spec}"
+    desc += f" {move_spec}"
+    return desc
+
+def get_next_move():
+    """ Get next move from
+        1. redo stack if any
+            else
+        2. move spec list if any
+    :returns: ChessMove in parsed state, ready to make_move
+    """    
+    if (cm := cb.move_redo()) is not None:  # Use redo, if any pending
+        return cm
+    
+    if len(move_spec_list) == 0:
+        return None
+    
+    move_spec = move_spec_list.pop(0)
+        
     cm = ChessMove(cb)
     if cm.decode(move_spec):
         SlTrace.lg(f"spec error:{cm.err}")
-        break
-    
-    move_no = cm.get_move_no()
-    to_move = cm.get_to_move()
-    desc = f"{move_no}:"
-    if to_move == "black":
-        prev_move = cb.get_prev_move()
-        prev_spec = prev_move.spec
-        desc += f" {prev_spec}"
-    desc += f" {move_spec}"
-    cm.make_move()
-    if step_through or update_as_loaded:
+        return None
+    return cm
         
+def do_move():
+    """ Do preparation for next move
+    """
+    cm = get_next_move()
+    if cm is None:
+        return None
+    
+    cm.make_move()
+    return cm
+
+def undo_move():
+    """ Undo previous move, backing up to board state
+    just before that move
+    """
+    cm = cb.move_undo()
+    return cm
+
+def redo_move():
+    """ Redo previous undo, adjusting board state to
+    just before the undo
+    """
+    cm = cb.move_redo()
+    cm.make_move()
+    return cm
+
+def display_cmd_proc(input):
+    """ Process display commands
+    :input: command string
+        s,n: do_move
+        u: undo move
+        r: redo_move
+    """
+    if input == 's' or input == 'n':
+        cm = do_move()
+    elif input == 'u':
+        cm = undo_move()
+    elif input == 'r':
+        cm = redo_move()
+    else:
+        SlTrace.lg("Unrecognized cmd:{input}")
+        return None
+    
+    if cm is not None:
+        desc = get_move_desc(cm)
         display_board(desc=desc)
 
-if cm.cmn.err_count > 0:
-    SlTrace.lg(f"Parse Errors:{cm.cmn.err_count}")
-    SlTrace.lg(f"First error: move {cm.cmn.err_first_move_no}:"
-                f" {cm.cmn.err_first}")
+
+cbd.set_cmd(display_cmd_proc)     
+cbd.update()
+            
 mw.mainloop()     
+
+err_count = cb.get_err_count()
+if err_count > 0:
+    err_first_move_no = cb.get_err_first_move_no()
+    err_first = cb.get_err_first()
+    SlTrace.lg(f"Parse Errors:{err_count}")
+    SlTrace.lg(f"First error: move {err_first_move_no}:"
+                f" {err_first}")

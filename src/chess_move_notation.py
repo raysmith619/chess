@@ -275,8 +275,8 @@ class ChessMoveNotation:
             else:
                 king_sq = "e8"
                 king_dest = "g8"
-                rook_sq = "h8"
-                rook_dest = "f8"
+                rook_sq = "a8"
+                rook_dest = "d8"
         self.orig_sq = king_sq
         self.dest_sq = king_dest
         self.orig2_sq = rook_sq

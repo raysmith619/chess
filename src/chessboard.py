@@ -13,6 +13,7 @@ from select_trace import SlTrace
 from chess_piece_images import ChessPieceImages
 from chess_piece_movement import ChessPieceMovement
 from chess_save_unit import ChessSaveUnit
+from chess_move import ChessMove
 
 class Chessboard:
 
@@ -53,10 +54,10 @@ class Chessboard:
         self.to_move = to_move
         self.setup_board()
         self.move_stack = []    # Stack of ChessSaveUnit
+        self.move_redo_stack = []   # Stack of ChessSaveUnit of undos
         self.update = True # Default - update after make_move
         self.moved_pieces_d = {}  #dictionary, by initial square
                                   #  of pieces who have moved
-        self.clear_assert_test_count()
         self.clear_assert_fail()
         self.set_assert_fail_max(10)
         self.cpm = ChessPieceMovement(self)
@@ -178,17 +179,17 @@ class Chessboard:
         return False
     
     def set_as_moved(self, sq, is_moved=True):
-        """ Set if piece, originating at this square's
-        moved state
+        """ Set originating at this square to is_moved state
         :sq: origin square
         :returns: privious value of is_moved
         """
         prev_moved = self.is_moved(sq=sq)
-        if (is_moved):
-            self.moved_pieces_d[sq] = True
-        else:
-            if sq in self.moved_pieces_d:
-                del self.moved_pieces_d[sq]         
+        if is_moved != prev_moved:
+            if (is_moved):
+                self.moved_pieces_d[sq] = True
+            else:
+                if sq in self.moved_pieces_d:
+                    del self.moved_pieces_d[sq]         
         return prev_moved
     
     def set_as_moved(self, sq):
@@ -198,11 +199,6 @@ class Chessboard:
         """
         self.moded_pieces_d = sq
         
-    def clear_assert_test_count(self):
-        """ Clear assert fail count
-        """
-        self.assert_test_count = 0
-
     def get_assert_test_count(self):
         """ Get test count
         """
@@ -226,12 +222,19 @@ class Chessboard:
             msg += f" {desc2}"
         SlTrace.lg(msg)
 
+        
+    def clear_assert_test_count(self):
+        """ Clear assert fail count
+        """
+        self.clear_asser_fail()
 
     def clear_assert_fail(self):
         """ Clear assert fail count
         """
+        self.assert_test_count = 0
         self.assert_fail_count = 0
         self.assert_first_fail = None
+        self.assert_first_fail_move_no = 0
         
     def get_assert_fail_count(self):
         """ Get test fail count - numbers of test errors
@@ -261,11 +264,29 @@ class Chessboard:
             self.assert_first_fail = f"Test {self.get_assert_test_count()}"
             self.assert_first_fail += f" {self.assert_test_desc}"
             self.assert_first_fail += f" {err}"
+            self.assert_first_fail_move_no = self.get_move_no()
             
         if self.assert_fail_count >= self.assert_fail_count_max:
             raise Exception(f"Assert fail maximum"
                             f"({self.assert_fail_count_max}) reached"
                             f" quitting")        
+
+    def get_assert_first_fail_move_no(self):
+        """ Get move no at first error
+        """
+        return self.assert_first_fail_move_no
+    def get_err_count(self):
+        """ Get error count, using assert -should change
+        """
+        return self.get_assert_fail_count()
+    
+    def get_err_first_move_no(self):
+        return 
+        return self.get_assert_first_fail_move_no()
+    
+    def get_err_first(self):
+        return self.get_assert_first_fail()
+
 
     def add_pieces(self, piece_squares, clear_first=True):
         """ add to current setting
@@ -826,7 +847,72 @@ class Chessboard:
             self.update_move()
             if orig_sq is not None:
                 self.remove_piece(orig_sq)
+
+
+    def csu_to_move(self, mv_csu):
+        """ Convert save unit (ChessSaveUnit) to move (ChessMove)
+        :mv_csu: Move save unit
+        :returns: sutable move (ChessMove)
+        """
+        cm = ChessMove(self)
+        cm.board = mv_csu.board
+        cm.spec = mv_csu.spec
+        cm.move_no = mv_csu.move_no
+        cm.to_move = mv_csu.to_move
+        cm.orig_piece = mv_csu.orig_piece
+        cm.prev_orig_sq_moved = mv_csu.prev_orig_sq_moved
+        cm.orig_sq = mv_csu.orig_sq
+        cm.dest_piece = mv_csu.dest_piece
+        cm.dest_sq = mv_csu.dest_sq
         
+        cm.orig2_piece = mv_csu.orig2_piece
+        cm.orig2_sq = mv_csu.orig2_sq
+        cm.prev_orig2_sq_moved = mv_csu.prev_orig2_sq_moved
+        cm.dest2_piece = mv_csu.dest2_piece
+        cm.dest2_sq = mv_csu.dest2_sq
+        return cm
+
+    def get_move_undo(self):
+        """ Get move undo stack entry, if one
+        No change to state
+        :returns: undo cm, if one
+                else None
+        """
+        if len(self.move_undo_stack) == 0:
+            return None
+
+        mv_csu = self.move_undo_stack[-1]
+        return self.csu_to_move(mv_csu)
+        
+                
+    def move_redo(self):
+        """ Undo previous undo:
+        1. Leaving board state as it was before that undo
+        2. Removing ChessStateUnit from undo_stack
+        :returns: previous move if successful else None
+        """
+        if len(self.move_redo_stack) == 0:
+            return None
+        
+        mv_csu = self.move_redo_stack.pop()
+        
+        
+    def move_undo(self):
+        """ Undo previous move:
+        1. Leaving board state as it was before that move
+        2. Adding ChessStateUnit in move_redo_stack to support redo
+        :returns: previous move if successful else None
+        """
+        if len(self.move_stack) == 0:
+            return None
+        
+        mv_csu = self.move_stack.pop()
+        self.move_redo_stack.append(mv_csu)
+        mv_csu.restore()
+        move = self.csu_to_move(mv_csu)
+        return move
+        
+                
     def to_piece_sq(self, piece=None, sq=None):
         """Produce piece_square even if piece is None
         :piece: piece or None if empty
@@ -855,38 +941,60 @@ class Chessboard:
             
     def save_move(self,
                 orig_sq=None,
+                orig_piece=None,
                 prev_orig_sq_moved=None,
                 dest_sq=None,
+                dest_piece=None,
                 spec=None,
                 orig2_sq=None,
+                orig2_piece=None,
                 prev_orig2_sq_moved=None,
                 dest2_sq=None,
+                dest2_piece=None,
                 dest2_sq_mod=None):
         """ Save move info, to enable undo
         :orig_sq: original square location
+        :orig_piece: orig_sq occupant
+                default: get from sq
         :dest_sq: destination square location
+        :dest_piece: dest_sq occupant
+                default: get from sq
         :dest_sq_mod: optional modified destination piece NOT USED
         :spec: specification
         :orig2_sq: optional original square
+        :orig2_piece: optional original square occupant
+            default: get from square
         :dest2_sq: optional second destination square
+        :dest2_piece: optional square occupant
+            default: get from square
         :dest2_sq_mod: optional modified destination piece NOT USED
         """
         
-        orig2_piece = None
+        if orig_piece is None:
+            orig_piece = self.get_piece(orig_sq)
+        if dest_piece is None:
+            dest_piece = self.get_piece(dest_sq)
+
         if orig2_sq is not None:
-            orig2_piece = self.get_piece(orig2_sq)
-        
-        dest2_piece = None
+            if orig2_piece is None:
+                orig2_piece = self.get_piece(orig2_sq)
         if dest2_sq is not None:
-            dest2_piece = self.get_piece(dest2_sq)
+            if dest2_piece is None:
+                dest2_piece = self.get_piece(dest2_sq)
 
         save_unit = ChessSaveUnit(self,
                         spec=spec,
                         orig_sq=orig_sq,
+                        orig_piece=orig_piece,
                         dest_sq=dest_sq,
-                        
-                        orig2_sq=orig_sq,
-                        dest2_sq=dest_sq)
+                        dest_piece=dest_piece,
+                        prev_orig_sq_moved=prev_orig_sq_moved,
+                        prev_orig2_sq_moved=prev_orig2_sq_moved,
+                        orig2_sq=orig2_sq,
+                        orig2_piece=orig2_piece,
+                        dest2_sq=dest2_sq,
+                        dest2_piece=dest2_piece,
+                        )
         self.move_stack.append(save_unit)
 
     """
