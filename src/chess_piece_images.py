@@ -3,7 +3,6 @@
 """
 import os
 import re
-import tkinter as tk
 from PIL import Image, ImageTk
 
 from select_trace import SlTrace
@@ -61,6 +60,8 @@ class ChessPieceImages:
     
     
 if __name__ == '__main__':
+    import tkinter as tk
+    
     SlTrace.clearFlags()
     
     # Create main window

@@ -1,24 +1,55 @@
 #chess_game_show.py 25Feb2025  crs from chess_move_notation.py
 """ 
 Display chess position/game
+Board state for do/undo/redo is kept in a chessboard stack 
+chessboard_stack.py (ChessboardStack)
 
+A new move is added to the current chess board
+and then the board is pushed on to board stack.
+The board index is set to stack list position of this board.
+
+A undo is produced by decreasing the current board index so that it
+references the previou board state.
+
+A redo is produced by increasing the current board index so that it
+references the board before the previous undo.
+
+To hide the differences created with this stack level we include
+the most common Chessboard functions we include the same functions
+in ChessboardStack which will operate on the current board. 
 """
 
 """
 """
 import re
 import argparse
-import tkinter as tk
 
 from select_trace import SlTrace
-SlTrace.clearFlags()
 
+
+from chess_error import ChessError
 from chessboard import Chessboard
+from chessboard_stack import ChessboardStack
 from chess_move import ChessMove
 from chess_move_notation import ChessMoveNotation
 from chessboard_display import ChessboardDisplay
 from chessboard_print import ChessboardPrint
-    
+
+SlTrace.clearFlags()
+#SlTrace.setFlags("no_ts=0")        # Timestamps for loging
+
+"""
+Game of the Century
+From https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
+[Event "Third Rosenwald Trophy"]
+[Site "New York, NY USA"]
+[Date "1956.10.17"]
+[EventDate "1956.10.07"]
+[Round "8"]
+[Result "0-1"]
+[White "Donald Byrne"]
+[Black "Robert James Fischer"]
+"""    
 moves = """
 1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O
 5.Bf4 d5 6.Qb3 dxc4 7.Qxc4 c6 8.e4 Nbd7
@@ -39,44 +70,7 @@ update_as_loaded = True     # Display board change as game loaded
 quit_on_fail = True         # Quit on first fail    
 
 # To support display_board access
-cb = None
-cbd = None
-cbp = None
-
-def check_user(prompt):
-    """ Wait for user instructions
-        default: execute/display move
-        returns:
-            s, "" ENTER for step
-            u - undo previous move
-            r - redo last undo
-
-    """
-    inp = input(prompt)
-    return inp
-
-def display_board(desc=None, new_display=False):
-    """ Display current board state
-    :desc: description
-        default: no description
-    :new_display: True - new display created
-        default: False - update current display
-    """
-    global cb, cbd, cbp
-    
-    if desc is None:
-        desc = ""
-    display_options = "visual_s"
-    #display_options = None
-    bd_str = cbp.display_board_str(display_options=display_options)
-    SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
-    if new_display:
-        cb = cb.copy()
-        cbd = ChessboardDisplay(cb)
-        mw2 = tk.Toplevel()     # Subsequent window                
-        cbd = ChessboardDisplay(cb, mw=mw2)
-    cbd.display_board(title=desc)
-    cbd.update()
+cbs = ChessboardStack()
 
 
 
@@ -104,85 +98,224 @@ file = args.file
 moves = args.moves
 quit_on_fail = args.quit_on_fail
     
-mw = tk.Tk()
-cb = Chessboard()
+cbs = None
+cb = None
+cbd = None
+move_spec_list = []
+
+def setup_display(master=None):
+    """ Setup display
+    including basic board
+    :mw: master
+            default: create
+    """
+    global cbd, move_spec_list
+    
+    cb = Chessboard()           # For inital sizes
+    cb.standard_setup()         # Starting position
+    cbd = ChessboardDisplay(cb, title="Begin Game")
+    cbp = ChessboardPrint(cb)
+    cbd.display_board()
+    
+    
+def setup_board(move_specs):
+    """ Setup new game board
+    :move_specs: list of move specifications
+    """
+    global cbs, cb, cbd, move_spec_list
+    cbs = ChessboardStack()
+    cb = Chessboard()           # For inital sizes
+    cb.standard_setup()         # Starting position
+    cbs.push_bd(cb)             # Add starting position to stack
+    #cbs.set_base()
+    move_spec_list = move_specs[:]       # Copy list
+
+setup_display()
 move_specs = ChessMoveNotation.game_to_specs(moves)
-move_spec_list = move_specs[:]       # Copy list
-cb.standard_setup()
-cbd = ChessboardDisplay(cb, mw=mw, title="Begin Game")
-cbp = ChessboardPrint(cb)
-cbd.display_board()
+setup_board(move_specs)    
 #cbd.mainloop()
 
-def get_move_desc(cm):
+def get_move_desc():
     """ Get move descriptor / title
-        AFTER move has been made
+        BEFORE move has been made (i.e., in title of board display)
     :cm: move ChessMove
         <move_no>: <white move spec>
             OR
         <move_no>: <white move spec> <black move spec>
     """
-    if cm.board.get_prev_move() is None:
-        return "Begin Game"
-    
-    move_spec = cm.spec
-    move_no = cm.move_no
-    to_move = cm.to_move
-    desc = f"{move_no}:"
-    if to_move == "black":
-        prev_move = cm.board.get_prev_move(-2)
-        if prev_move is not None:
-            prev_spec = prev_move.spec
-            desc += f" {prev_spec}"
-    desc += f" {move_spec}"
+    cb = cbs.get_bd()
+    cm = cb.get_move()
+    if cm is not None:
+        move_spec = cm.spec
+        move_no = cm.move_no
+        to_move = cm.to_move
+        desc = f"{move_no}:"
+        if to_move == "black":
+            prev_move = cbs.get_move(-1)
+            if prev_move is not None:
+                prev_spec = prev_move.spec
+                desc += f" {prev_spec}"
+        desc += f" {move_spec}"
+    else:
+        desc = "Begin Game"
     return desc
+
+game_desc = None    # Game description if one
+def display_board(desc=None, new_display=False):
+    """ Display current board state
+    :desc: description
+        default: generate description
+    :new_display: True - new display created
+        default: False - update current display
+    """
+    global cbs, cbd, cbp
+    global move_interval    # msec between move change
+    
+    if desc is None:
+        desc = get_move_desc()
+    display_options = "visual_s"
+    #display_options = None
+    cb = cbs.get_bd()           # Get current board
+    if cb is None:
+        SlTrace.lg("No board to display")
+        return
+    
+    cbp = ChessboardPrint(cb)
+    
+    bd_str = cbp.display_board_str(display_options=display_options)
+    gdesc = "" if game_desc is None else game_desc
+    desc = f"{desc:<15} {gdesc}"
+    SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
+    if new_display:
+        cbs = cbs.copy()
+        cb = cbs.get_bd()
+        cbd = ChessboardDisplay(cb, new_display=True)
+
+    cbd.display_board(title=desc, cb=cb)    # Use current state
+    move_interval = cbd.loop_interval
+    cbd.update()
+    pass
 
 def get_next_move():
     """ Get next move from
         1. redo stack if any
             else
         2. move spec list if any
-    :returns: ChessMove in parsed state, ready to make_move
+    :returns: None if none left
+                ChessMove if a redo
+                move_spec if from move spec list
     """    
-    if (cm := cb.move_redo()) is not None:  # Use redo, if any pending
-        return cm
+    if (cm := cbs.move_redo()) is not None:  # Use redo, if any pending
+        return cm   # bd_stack is adjusted
     
     if len(move_spec_list) == 0:
-        return None
+        return None         # No more in list
     
     move_spec = move_spec_list.pop(0)
-        
-    cm = ChessMove(cb)
-    if cm.decode(move_spec):
-        SlTrace.lg(f"spec error:{cm.err}")
-        return None
-    return cm
+    return move_spec    
         
 def do_move():
     """ Do preparation for next move
     """
-    cm = get_next_move()
-    if cm is None:
+    cm_or_spec = get_next_move()
+    if cm_or_spec is None:
         return None
-    
-    cm.make_move()
+    if isinstance(cm_or_spec, str):
+        cbs.push_bd()
+        cm = ChessMove(cbs.get_bd())
+        if cm.decode(cm_or_spec):
+            SlTrace.lg(f"spec error:{cm.err}")
+            return None
+        
+        cm.make_move()
+    else:
+        cm = cm_or_spec
     return cm
 
 def undo_move():
     """ Undo previous move, backing up to board state
     just before that move
     """
-    cm = cb.move_undo()
+    cm = cbs.move_undo()
     return cm
 
 def redo_move():
     """ Redo previous undo, adjusting board state to
     just before the undo
     """
-    cm = cb.move_redo()
-    cm.make_move()
+    cm = cbs.move_redo()
+    if cm is not None:
+        cm.make_move()
     return cm
 
+game_looping = False    # While true we can loop
+move_interval = 250     # Move interval in msec
+def restart_game():
+    """ Resetup original board position
+    """
+    while cbs.move_undo():
+        pass
+    return None
+
+def do_looping():
+    """ do game loop
+    """
+    if not do_move():
+        restart_game()
+    display_board()
+
+    
+def loop_game():
+    """ Start looping game
+    """
+    cbd.start_looping(do_looping, move_interval)
+    
+
+def stop_loop():
+    """ Stop display looping
+    """
+    cbd.stop_looping()
+
+def get_file_games():
+    """ Get games, already read, from file
+        Setup game and display
+    """
+    global game_desc
+    global move_spec_list
+    
+    game = cbd.sel_game
+    if game is None:
+        return          # None to have
+    
+    stop_loop()     # Stop action incase going
+    restart_game()
+    game_desc = cbd.sel_short_desc
+    setup_board(game.moves)
+
+def goto_move_idx(input):
+    """ Go to move *set display)
+    :input: input text goto_move_idx<whitespace>*<index>
+    """
+    if isinstance(input, int):
+        move_index = input
+    elif isinstance(input, str):
+        if not (goto_match:=re.match(r'goto_move_idx?\s*(-?\d+)', input)):
+            raise ChessError(f"goto_move_idx {input = } bad input")
+    
+    val_str = goto_match.group(1)
+    move_idx = int(val_str)
+    stop_loop()
+    if move_idx < 0 or move_idx > len(cbs.board_stack)-1:
+        while do_move() is not None:
+            pass
+
+    if move_idx < 0:
+        move_idx = len(cbs.board_stack)+move_idx
+    if move_idx >= 0 and move_idx < len(cbs.board_stack):
+        cbs.set_cur_bd_index(move_idx)
+        display_board()
+        
+                
 def display_cmd_proc(input):
     """ Process display commands
     :input: command string
@@ -190,27 +323,42 @@ def display_cmd_proc(input):
         u: undo move
         r: redo_move
     """
-    if input == 's' or input == 'n':
+    cm = None
+    if input == "f":    # Read game(s) from file
+        get_file_games()
+        return
+    elif input.startswith("goto_move_idx"):
+        goto_move_idx(input)
+        return
+            
+    elif input == 's' or input == 'n':
         cm = do_move()
     elif input == 'u':
         cm = undo_move()
     elif input == 'r':
         cm = redo_move()
+    elif input == 'p':
+        stop_loop()
+    elif input == 'l':
+        loop_game()
+    elif input == 't':
+        restart_game()
+        cm = "blah"
     else:
-        SlTrace.lg("Unrecognized cmd:{input}")
+        SlTrace.lg(f"Unrecognized cmd:{input}")
         return None
     
     if cm is not None:
-        desc = get_move_desc(cm)
+        desc = get_move_desc()
         display_board(desc=desc)
 
 
 cbd.set_cmd(display_cmd_proc)     
 cbd.update()
             
-mw.mainloop()     
-
-err_count = cb.get_err_count()
+cbd.mainloop()     
+cb = cbs.get_bd()
+err_count = cbs.get_err_count()
 if err_count > 0:
     err_first_move_no = cb.get_err_first_move_no()
     err_first = cb.get_err_first()

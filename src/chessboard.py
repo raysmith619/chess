@@ -65,10 +65,7 @@ class Chessboard:
     def copy(self):
         """ Copy information for independant opperation
         """
-        cb_new = copy.copy(self)        
-        cb_new.move_stack = self.move_stack[:]
-        cb_new.board_setting = copy.copy(self.board_setting)
-        cb_new.moved_pieces_d = copy.copy(self.moved_pieces_d)
+        cb_new = copy.deepcopy(self)        
         return cb_new
                               
     def setup_board(self):
@@ -516,6 +513,23 @@ class Chessboard:
             rank = chr(ord('1')+rank-1)
         return file+rank
 
+    def get_move(self, rel=0):
+        """ Get board's latest move
+        :rel: relative to latest 0-latest
+                        -1 one before latest
+        :returns: ChessMove, None if no move here
+        """
+        move_index = len(self.move_stack)-1+rel
+        if move_index < 0:
+            return None
+        
+        if move_index > len(self.move_stack)-1:
+            return None
+        
+        mv_csu = self.move_stack[move_index]
+        cm = self.csu_to_move(mv_csu)
+        return cm
+
     def get_move_no(self):
         """ Get chess game move number, assuming
         started with white
@@ -749,6 +763,8 @@ class Chessboard:
         """
         if to_move is None:
             to_move = self.get_to_move()
+        if type is None:
+            SlTrace.lg(f"type is None")
         piece = type.lower() if to_move == "black" else type.upper()
         return piece
 
@@ -786,6 +802,8 @@ class Chessboard:
                   dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
+                  has_movement=None,
+                  game_result=None,
                   update=True,
                   orig2_sq=None,
                   prev_orig2_sq_moved=None,
@@ -801,6 +819,10 @@ class Chessboard:
                 default: get state before move
         :dest_sq: destination square for move
         :spec: move specification
+        :has_movement:  True - move does something
+                default: True
+        :game_result: game rusult = game over
+                default: No game result
         :dest_sq_mod: alternate piece for destination e.g. promotion 
         :update: change board default: True - change
         :orig2_sq: optional second origin sq e.g. for castle
@@ -835,7 +857,8 @@ class Chessboard:
             self.remove_piece(sq=orig_sq)
             dest_update = orig_piece if dest_sq_mod is None else dest_sq_mod
             self.place_piece(dest_update, dest_sq)
-            
+            self.has_movement=has_movement
+            self.game_result = game_result
             # Optional second pair for such things as castling
             if orig2_sq is not None:
                 orig2_piece = self.get_piece(sq=orig2_sq)
@@ -844,7 +867,9 @@ class Chessboard:
                     dest2_update = orig2_piece if dest2_sq_mod is None else dest_sq_mod
                     self.place_piece(dest2_update, dest2_sq)
             
-            self.update_move()
+            
+            if game_result is None:
+                self.update_move()
             if orig_sq is not None:
                 self.remove_piece(orig_sq)
 

@@ -48,6 +48,7 @@ class ChessMove:
         """
         self.err = None         # Error msg, None == no error
         self.spec = None        # move specification
+        self.has_movement = True     # if move does some change
         self.game_result = None # set with game result
         self.is_check = False   # True if check
         self.is_check_mate = False  # True if mate
@@ -432,6 +433,8 @@ class ChessMove:
                   orig_sq=None, dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
+                  has_movement=None,
+                  game_result = None,
                   update=True,
                   orig2_sq=None, dest2_sq=None,
                   dest2_sq_mod=None):
@@ -442,6 +445,9 @@ class ChessMove:
         :orig_sq: origin square for move
         :dest_sq: destination square for move
         :spec: move specification
+        :has_movement: if we move
+        :game_result: game rusult = game over
+                default: No game result
         :dest_sq_mod: alternate piece for destination e.g. promotion 
         :update: change board default: True - change
         :orig2_sq: optional second origin sq e.g. for castle
@@ -455,6 +461,10 @@ class ChessMove:
             dest_sq = self.dest_sq
         if spec is None:
             spec = self.spec
+        if has_movement is None:
+            has_movement = self.has_movement
+        if game_result is None:
+            game_result = self.game_result
         if dest_sq_mod is None:
             dest_sq_mod = self.dest_sq_mod
         if update is None:
@@ -473,6 +483,8 @@ class ChessMove:
                                     orig2_sq=orig2_sq,
                                     dest2_sq=dest2_sq,
                                     dest2_sq_mod=dest2_sq_mod,
+                                    has_movement=has_movement,
+                                    game_result=game_result,
                                     update=update,
                                     spec=spec)
 

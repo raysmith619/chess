@@ -1,4 +1,5 @@
-#chess_move_notation.py 19Feb2025  crs from chess_move.py
+#chess_move_notation.py 19Feb2025   crs from chess_move.py
+#                                   crs add 1/2-/1/2, and solo game result move
 r""" 
 Parse chess move notation, saving move information
 for further analysis, execution
@@ -7,6 +8,7 @@ Notation summary
 general patterns
 Additions:
     stuff 0-1, 0-0, 1-0     Rc2# 0-1   game result
+    stuff 1/2-1/2                      game result - draw
     stuff +                 Bxc4+      move with check
     stuff #
     
@@ -32,15 +34,16 @@ from select_trace import SlTrace
 class ChessMoveNotation:
     """ Do all chess move specification parsing
     """
+    err_count = 0          # Count of errors      
+    err_first = None       # first error, if any   
+    err_first_move_no = 0  # first error move no
+    
     def __init__(self, chess_move):
         """ Setup link with chess move
         :chess_move: reference to ChessMove instance
         :returns: None if OK, error message text if problem
         """
         self.cm = chess_move
-        self.err_count = 0          # Count of errors      
-        self.err_first = None       # first error, if any   
-        self.err_first_move_no = 0  # first error move no
                 
     def __str__(self):
         """ String form for debugging/analysis
@@ -74,6 +77,8 @@ class ChessMoveNotation:
             ret += " checkmate"
         if self.game_result is not None:
             ret += f" {self.game_result}"
+        if self.has_movement is not None and not self.has_movement:
+            ret += " ending move"
         return ret
             
                         
@@ -91,6 +96,7 @@ class ChessMoveNotation:
         # Change if/when appropriate
         self.err = None         # Error msg, None == no error
         self.spec = spec        # move specification
+        self.has_movement=True  # except for game_result  only
         self.game_result = None # set with game result
         self.is_check = False   # True if check
         self.is_check_mate = False  # True if mate
@@ -112,9 +118,14 @@ class ChessMoveNotation:
 
         spec_rem = spec     # remaining, adjusted as parts are decoded
         # Check if game result
-        if (match_res := re.match(r'(.*)\s+([0-1]-[0-1])\s*$', spec_rem)):
-            spec_rem, self.game_result = match_res.groups()
-        
+        if (match_res := re.match(r'(.*)\s*(([0-1]-[0-1])|(1/2-1/2))\s*$', spec_rem)):
+            mr_list = list(match_res.groups())
+            spec_rem = mr_list[0]
+            self.game_result = mr_list[1]
+            if spec_rem == "":
+                self.has_movement=False
+                return self.err_add()   # Done with parsing
+             
         # Check if check or mate
         if (match_res := re.match(r'(.*)\s*([+#])$', spec_rem)):
             spec_rem,check_or_mate = match_res.groups()
@@ -124,9 +135,10 @@ class ChessMoveNotation:
                 self.is_check_mate = True    
 
         # Check if castle
-        if (match_castle := re.match(r'(O-O|O-O-O)', spec_rem)):
+        if (match_castle := re.match(r'(O-O|O-O-O)$', spec_rem)):
             self.is_castle = True
-            if match_castle.group(1) == 'O-O-O':
+            group1 = match_castle.group(1)
+            if  group1 == 'O-O-O':
                 self.is_castle_queen_side = True
             else:
                 self.is_castle_king_side = True
@@ -166,6 +178,9 @@ class ChessMoveNotation:
         """ Finish decoding process, started by decode_spec_parts
         Uses settings in self (ChessMoveNotation instance)
         """
+        if not self.has_movement:
+            return self.err_add()   # No movement - no more parsing
+        
         if self.is_castle:
             self.decode_castle()
             return self.err_add()
@@ -395,6 +410,8 @@ class ChessMoveNotation:
         move.orig_sq = self.orig_sq
         move.dest_sq = self.dest_sq
         move.spec = self.spec
+        move.game_result = self.game_result
+        move.has_movement = self.has_movement
         move.dest_sq_mod = self.dest_sq_mod
         move.orig2_sq = self.orig2_sq
         move.dest2_sq = self.dest2_sq
@@ -404,6 +421,8 @@ class ChessMoveNotation:
                   orig_sq=None, dest_sq=None,
                   dest_sq_mod=None,
                   spec=None,
+                  has_movement=None,
+                  game_result=None,
                   update=True,
                   orig2_sq=None, dest2_sq=None,
                   dest2_sq_mod=None):
@@ -427,6 +446,10 @@ class ChessMoveNotation:
             dest_sq = self.dest_sq
         if spec is None:
             spec = self.spec
+        if has_movement is None:
+            has_movement = self.has_movement
+        if game_result is None:
+            game_result = self.game_result
         if dest_sq_mod is None:
             dest_sq_mod = self.dest_sq_mod
         if update is None:

@@ -8,6 +8,9 @@ class ChessboardPrint:
                  board,
                  display_options=None,
                 ):
+        if board is None:
+            raise Exception(f"ChessboardPrint board is None")
+        
         self.board = board
         self.display_options = display_options
         
