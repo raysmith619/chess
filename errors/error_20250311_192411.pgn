@@ -1,0 +1,12 @@
+[Event "New York m3"]
+[Site "New York"]
+[Date "1957.??.??"]
+[Round "1"]
+[White "Euwe, Max"]
+[Black "Fischer, Robert James"]
+[Result "1-0"]
+
+1. d4 Nf6 2. c4 e6 3. Nc3 d5 4. cxd5 exd5 5. Bg5 Bb4 6. e3 h6 7. Bh4 c5 8. Bd3 Nc6 9. Ne2 cxd4 10. exd4 O-O 11. O-O Be6 12. Bc2 Be7 13. Nf4 Qb6 14. Bxf6 Bxf6 15. Qd3 Rfd8 16. Rfe1 Nb4 17. Qh7+ Kf8 18. a3 Nxc2 19. Ncxd5 Rxd5 20. Nxd5 1-0
+
+{decode_ret = "Can't find orig_sq with piece = p, piece_choice=, dest_sq=d5" spec error:Can't find orig_sq with piece = p, piece_choice=, dest_sq=d5}
+

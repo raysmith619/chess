@@ -16,7 +16,9 @@ import copy
 
 import pgn
 
+
 from select_trace import SlTrace
+from select_trace import TraceError
 from chess_piece_images import ChessPieceImages
  
 class ChessboardDisplay:
@@ -24,6 +26,13 @@ class ChessboardDisplay:
     window_list = []    # list of tuples (title, ChessboardDisplay)
                         # in the order created
     window_current = 0  # current choice index
+
+    def setup_chess_piece_images(self):
+        """ Setup the piece images, currently size fixed
+        """
+        self.cpi = ChessPieceImages()
+        piece_images = self.cpi.get_image_dict()
+        ChessboardDisplay.piece_images = dict(piece_images)
     
     def __init__(self,
                  board,
@@ -35,6 +44,8 @@ class ChessboardDisplay:
                  #dark_sq = "#769656",       # green
                  title=None,
                  games_dir="../games",       # chess games directory
+                 errors_dir="../errors",
+                 scan_max_loops=None,
                  new_display=False,
                 ):
         self.board = board
@@ -45,12 +56,19 @@ class ChessboardDisplay:
             mw = tk.Toplevel(self.master)
         self.mw = mw
         self.chess_piece_images = ChessPieceImages()
-        self.setup_chess_piece_Images()
+        self.setup_chess_piece_images()
         self.sq_size = sq_size
         self.light_sq = light_sq
         self.dark_sq = dark_sq
         self.title = title
         self.games_dir = games_dir
+        self.setup_errors(errors_dir)
+        self.errors_dir = errors_dir
+        
+        self.scan_file_name = None
+        self.scan_max_loops = scan_max_loops
+        self.scan_loops = 0
+        self.scan_is_force_next_game = False     # True - abandon current game
         self.setup_board_canvas(self.mw)
         ChessboardDisplay.window_list.append(self)
         self.mw.bind('<KeyPress>', self.on_key_press)
@@ -58,6 +76,7 @@ class ChessboardDisplay:
         self.loop_interval = 250    # game move display interval (msec)     
         self.sel_short_desc = None  # Set if game selected
         self.sel_game = None        # Set if game selected
+        self.is_scanning = False     # True = Scanning files in progress
         self.setup_menus()        
         squares_bounds = []         # square bounds array [ic][ir]
         board = self.board
@@ -91,6 +110,27 @@ class ChessboardDisplay:
                                     text=file_label, font=self.rank_font)
             squares_bounds.append(sb_col)   # Add next column to right
         self.squares_bounds = squares_bounds
+
+    def setup_errors(self, errors_dir):
+        """ Setup errors directory
+        :errors_dir:
+        """
+        self.err_count = 0          # Count of errors      
+        self.err_first = None       # first error, if any   
+        self.err_first_move_no = 0  # first error move no
+        directory = errors_dir
+        self.errors_dir = errors_dir
+        
+        if not os.path.exists(directory):
+            try:
+                os.mkdir(directory)
+            except:
+                raise TraceError("Can't create errors directory %s"
+                                     % directory)
+                sys.exit(1)
+        
+            print("Error games Directory %s  created\n"
+                  % os.path.abspath(directory))
 
 
     """ Setup keyboard/button commands
@@ -142,7 +182,7 @@ class ChessboardDisplay:
         if self.is_looping:
             self.loop_fun()
         if self.is_looping:
-            self.mw.after(self.loop_interval, self.loop_call)
+            self.after_no_arg(self.loop_interval, self.loop_call)
                 
         
         
@@ -206,7 +246,23 @@ class ChessboardDisplay:
         while True:
             self.mw.update()
             
+    def after(self, int_ms=0, cmd=None, arg=None):
+        """ Call cmd after interval
+        :int_ms: after this interval in msec
+                default: as soon as possible
+        :cmd: function to call
+        :arg: argument to cmd
+        """
+        self.mw.after(int_ms, cmd, arg)    
             
+    def after_no_arg(self, int_ms=0, cmd=None):
+        """ Call cmd after interval with no arg
+        :int_ms: after this interval in msec
+                default: as soon as possible
+        :cmd: function to call
+        :arg: argument to cmd
+        """
+        self.mw.after(int_ms, cmd)    
     
     def update(self):
         """ Do update, allowing graphics to update
@@ -230,13 +286,44 @@ class ChessboardDisplay:
         self.include_pieces = include_pieces    
         if title is None:
             title = self.title
+        if self.err_count > 0:
+            title = f"ERRORS: {self.err_count} {title}"
         self.mw.title(title)
         if cb is None:
             cb = self.board
         self.board = cb
         if include_pieces:
             self.display_pieces()
+    
+    def err_add(self, msg=None):
+        """ Set and Count errors
+        :msg: count as error if msg != ""
+            default: self.err - current parsing error message
+        :returns: msg
+        """
+        if msg is None:
+            msg = self.err
+            
+        if msg is not None and msg != "":
+            self.err = msg
+            self.err_count += 1
+            if self.err_first is None:
+                self.err_first_file_name = self.scan_file_name
+                self.err_first_desc = self.sel_short_desc
+                self.err_first_game = self.sel_game
+                self.err_first = msg
+        return msg    
 
+    def error_show(self, desc=None):
+        """ Show error
+        if scanning, then go to next file
+        """
+        self.err_add(msg=desc)
+        self.save_error_game(desc)
+        if self.is_scanning:
+            self.scan_force_next_game()
+        SlTrace.lg("Continuing")    
+        
     def setup_ctl(self, ctl_frame):
         """ Setup control buttons
         :ctl_frame: control Frame
@@ -276,15 +363,16 @@ class ChessboardDisplay:
             file_open_cmd = self.File_Open_tbd
         filemenu = tk.Menu(menubar, tearoff=0)
         filemenu.add_command(label="Open", command=file_open_cmd)
-        file_save_cmd = self.file_save
-        if file_save_cmd is None:
-            file_save_cmd = self.File_Save_tbd
-        filemenu.add_command(label="Save", command=file_save_cmd)
+        filemenu.add_command(label="Save", command=self.file_save)
         filemenu.add_separator()
         filemenu.add_command(label="Log", command=self.LogFile)
         filemenu.add_separator()
         filemenu.add_command(label="Exit", command=self.pgmExit)
         menubar.add_cascade(label="File", menu=filemenu)
+        
+        game_menu = tk.Menu(menubar, tearoff=0)
+        game_menu.add_command(label="Files", command=self.scan_files_cmd)
+        menubar.add_cascade(label="Scanning", menu=game_menu)
         
         setting_menu = tk.Menu(menubar, tearoff=0)
         setting_menu.add_command(label="Loop_interval", command=self.loop_interval_cmd)
@@ -379,8 +467,6 @@ class ChessboardDisplay:
         game files are text files of Portable Game Notation (PGN).
         see: https://www.chess.com/terms/chess-pgn
         """
-        file_name = "fischer.pgn"
-        file_path = os.path.join(self.games_dir, file_name)
         game_file = tk.filedialog.askopenfile(
                             initialdir=self.games_dir,
                             initialfile="fischer.pgn",
@@ -422,6 +508,212 @@ class ChessboardDisplay:
         self.sel_game = sel_game
         self.mw.after(0, self.on_cmd, "f")  # update show with new game
 
+    def iterate_game_files(dir_path):
+        """ Iterate over pgn game files
+        :dir_path: game files directory
+        :returns: next game file, else None at end
+        """
+        for filename in os.listdir(dir_path):
+            file_path = os.path.join(dir_path, filename)
+            if os.path.isfile(file_path):
+                yield file_path
+        return None
+
+    def save_error_game(self, desc=None, game=None):
+        """ Report error, saving file png text
+        :desc: description
+        :game: game
+                default: from cbd
+        """
+        if game is None:
+            game = self.sel_game
+            
+        file_base = f"error_{SlTrace.getTs()}.pgn"
+        file_name = os.path.join(self.errors_dir, file_base)
+        with open(file_name,"w") as f:
+            file_text = pgn.dumps(game)
+            print(file_text, file=f)
+            if desc is not None:
+                print("\n{" + desc + "}\n", file=f)
+        
+    def scan_files_cmd(self):
+        """ Scan chess files in games directory
+        """
+        self.is_scanning = True     # Scanning files in progress
+        self.scan_loops = 0         # Keep count
+        self.scan_files_start()
+
+    def scan_force_next_game(self):
+        """ Force next move to go to next game
+        """
+        self.scan_is_force_next_game = True
+        
+    def scan_files_start(self):
+        """ Start files scan
+        :games_dir: directory of games pgn files
+        """
+        self.scan_loops += 1
+        if self.scan_max_loops is not None:
+            if self.scan_loops > self.scan_max_loops:
+                SlTrace.lg(f"Stopping at {self.scan_loops = }")
+                return
+        
+        self.scan_moves_iter = None # Iterate through game moves
+        self.scan_games_iter = None # Iterate through file games
+        # Iterate through dir files
+        self.scan_files_iter = self.scan_dir_iter(self.games_dir)
+        self.scan_do_move()        # Start/continue move scan
+
+    def scan_is_wanted_game(self, pnggame):
+        """ Check if we want to scan this game
+        :pgngame: our game
+        :returns: True if this game is our list
+        """
+        return True     # everything
+            
+    def scan_do_move(self):
+        """ Continue game moves scan
+        """
+        if not self.is_scanning:
+            return      # Scanning is over
+    
+        move = self.scan_get_move()            
+        if move is None:
+            self.after_no_arg(0, self.scan_files_start)  # start over
+            return
+        
+        self.scan_call(move)
+            
+    def scan_call(self, move):
+        """ Function to call users scan looping function
+        We use the looping function
+        :move: move specification
+        """
+        self.buttonClick(input=f"scan_move {move}")
+        if self.is_scanning:
+            self.after_no_arg(0, self.scan_do_move)
+
+    def scan_moves_iterator(self, pgngame):
+        """ Iterate moves through pgngame
+        :pgngame: game returned via pgn.GameIterator()
+        :returns: move if one, None if none left
+        """
+        move_index = 0
+        while move_index < len(pgngame.moves):
+            move = pgngame.moves[move_index]
+            move_index += 1
+            yield move
+        
+        return None
+        
+    def scan_get_move(self):
+        """ Get next move from scanning
+        :returns: move, None if at end of scanning list
+        """
+        # Loop to handle empty games
+        while True:
+            try:
+                if self.scan_moves_iter is not None:
+                    move = next(self.scan_moves_iter)
+                    if self.scan_is_force_next_game:
+                        raise StopIteration()   # force end of game
+                    
+                    return move
+                
+            except StopIteration:
+                pass        # End of this game's moves
+                self.scan_is_force_next_game = False
+
+            # Get next game.
+            if (game := self.scan_get_game()) is None:
+                return None                 # No more games
+            
+            # Check if a desired game.
+            if not self.scan_is_wanted_game(game):
+                continue
+            
+            # Update with new game info
+            self.scan_moves_iter = self.scan_moves_iterator(game)
+            short_desc = (f"{game.white} vs. {game.black}"
+                        f" {game.event} {game.date}")
+            self.sel_game = game
+            self.sel_short_desc = short_desc
+            self.buttonClick("scan_new_game")
+        return move
+ 
+    def scan_get_game(self):
+        """ Get next game, None if no more
+        :returns: PgnGame, else None if nomore games
+        """
+        # Loop to handle empty files
+        game = None
+        while  True:
+            if self.scan_games_iter is None:
+                game = None
+            else:
+                try:
+                    game = next(self.scan_games_iter)
+                except StopIteration:
+                    game = None
+            if game is None:    
+                if (file := self.scan_get_file()) is None:
+                    return None
+                
+                SlTrace.lg(f"\nFile: {file}")
+                self.scan_file_name = file
+                with open(file) as game_file:
+                    pgn_text = game_file.read()
+                    pgn_games = pgn.loads(pgn_text) # Returns a list of PGNGame
+                    self.scan_games_iter = iter(pgn_games)
+            else:
+                return game
+ 
+    def scan_get_file(self):
+        """ Get next file, None if no more
+        :returns: file_path, else None if nomore files
+        """
+
+        try:
+            file = next(self.scan_files_iter)
+        except StopIteration:
+            return None
+        
+        return file
+        
+    def scan_next_game(self):
+        """ Do next game
+        """
+        game = self.game_iter.next()
+
+    def scan_pause(self):
+        """ Pause scanning
+        """
+        self.is_scanning = False
+                
+    def scan_dir_iter(self, games_dir):
+        """ Iterate over directory, yielding next file path
+        each time
+        :games_dir: directory to scan
+        :returns: next file path, None if end
+        """
+        for file in os.listdir(games_dir):
+            # check the games files
+            if file.endswith(".pgn"):
+                # print path name of selected files
+                file_path = os.path.join(games_dir, file)
+                yield file_path
+            
+        return None
+    
+        
+    def scan_file(file_path):
+        """ Play games witin this file
+        :file_path: path to game file
+        :returns: game iterator for this file
+        """                        
+        pgn_iter = pgn.GameIterator(file_path)
+        return pgn_iter    
+
     def file_save(self):
         raise Exception("Not yet implemented")
 
@@ -441,6 +733,8 @@ class ChessboardDisplay:
         if title is None:
             title = self.title
         self.title = title
+        if self.err_count > 0:
+            title = f"ERRORS: {self.err_count} {title}"
         self.mw.title(title)
         self.canvas.delete("piece_tags")
         if piece_squares is None:
@@ -471,13 +765,6 @@ class ChessboardDisplay:
             SlTrace.lg(err)
             raise Exception(err)
 
-    def setup_chess_piece_Images(self):
-        """ Setup the piece images, currently size fixed
-        """
-        self.cpi = ChessPieceImages()
-        piece_images = self.cpi.get_image_dict()
-        ChessboardDisplay.piece_images = dict(piece_images)
-
     def mainloop(self):
         """ Primary wait loop
         """
@@ -503,7 +790,8 @@ if __name__ == '__main__':
         cb2 = Chessboard(pieces=pieces)
         cbp = ChessboardPrint(cb2)
         cbp.display_board()
-        cbd = ChessboardDisplay(cb2, new_display=True, title=f"pieces={pieces}")
+        cbd = ChessboardDisplay(cb2, new_display=True, title=f"pieces={pieces}",
+                                games_dir="../games_test", scan_max_loops=2)
         cbd.set_cmd(test_on_cmd)    # Set in each window
         if cBd is None:
             cBd = cbd

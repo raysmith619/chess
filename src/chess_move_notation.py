@@ -239,7 +239,7 @@ class ChessMoveNotation:
                               piece_choice=self.piece_choice,
                               dest_sq=self.dest_sq)
         if sq is None:
-            return self.err_add("Can't find orig_sq"
+            return self.err_add(f"Can't find orig_sq, spec={self.spec}"
                                 f" with piece = {self.piece},"
                               f" piece_choice={self.piece_choice},"
                               f" dest_sq={self.dest_sq}")
@@ -416,6 +416,8 @@ class ChessMoveNotation:
         move.orig2_sq = self.orig2_sq
         move.dest2_sq = self.dest2_sq
         move.dest2_sq_mod = self.dest2_sq_mod
+        if self.err:
+            move.err = self.err
         
     def make_move(self, just_notation=False,
                   orig_sq=None, dest_sq=None,

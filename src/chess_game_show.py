@@ -68,7 +68,7 @@ xs = True
 update_as_loaded = True     # Display board change as game loaded
     
 quit_on_fail = True         # Quit on first fail    
-
+scan_max_loops = 1          # Limit scanning loops
 # To support display_board access
 cbs = ChessboardStack()
 
@@ -113,7 +113,7 @@ def setup_display(master=None):
     
     cb = Chessboard()           # For inital sizes
     cb.standard_setup()         # Starting position
-    cbd = ChessboardDisplay(cb, title="Begin Game")
+    cbd = ChessboardDisplay(cb, title="Begin Game", scan_max_loops=scan_max_loops)
     cbp = ChessboardPrint(cb)
     cbd.display_board()
     
@@ -213,18 +213,31 @@ def get_next_move():
     
     move_spec = move_spec_list.pop(0)
     return move_spec    
-        
-def do_move():
-    """ Do preparation for next move
+
+def error_show(desc=None):
+    """ Report error, saving file png text
+    :desc: description
     """
-    cm_or_spec = get_next_move()
+    cbd.error_show(desc=desc)
+    if cbd.is_looping:
+        stop_loop()
+        
+def do_move(cm_or_spec=None):
+    """ Do next move
+    :cm_or_spec: move(ChessMove) or move specifiction
+        default: get next move
+    """
     if cm_or_spec is None:
-        return None
+        cm_or_spec = get_next_move()
+        if cm_or_spec is None:
+            return None
     if isinstance(cm_or_spec, str):
         cbs.push_bd()
         cm = ChessMove(cbs.get_bd())
-        if cm.decode(cm_or_spec):
+        if (decode_ret:=cm.decode(cm_or_spec)):
+            SlTrace.lg(f"{decode_ret = }")
             SlTrace.lg(f"spec error:{cm.err}")
+            error_show(desc=f"{decode_ret = } spec error:{cm.err}")
             return None
         
         cm.make_move()
@@ -260,8 +273,8 @@ def restart_game():
 def do_looping():
     """ do game loop
     """
-    if not do_move():
-        restart_game()
+    do_move()
+
     display_board()
 
     
@@ -276,6 +289,44 @@ def stop_loop():
     """
     cbd.stop_looping()
 
+def scan_pause():
+    """ Pause scanning
+    """
+    cbd.scan_pause()
+    
+def scan_move(move):
+    """ Do move from scan
+    :move: move specification
+    """
+    if do_move(move) is None:
+        #scan_pause()
+        cm = cbs.get_move()
+        SlTrace.lg(f"{cm}")
+        #error_show(f"{cm}")
+        return
+    
+    desc = get_move_desc()
+    display_board(desc=desc)
+    return
+               
+
+    
+def scan_new_game(input):
+    """ Start new scanning game
+    :input: input string
+    """
+    global game_desc
+    
+    game = cbd.sel_game
+    if game is None:
+        return          # None to have
+    
+    stop_loop()     # Stop action incase going
+    restart_game()
+    game_desc = f"{cbd.sel_short_desc} {cbd.scan_file_name}"
+    setup_board(game.moves)
+    display_board()
+    
 def get_file_games():
     """ Get games, already read, from file
         Setup game and display
@@ -330,7 +381,16 @@ def display_cmd_proc(input):
     elif input.startswith("goto_move_idx"):
         goto_move_idx(input)
         return
-            
+    
+    elif input.startswith("scan_new_game"):
+        scan_new_game(input)
+        return
+    
+    elif (match_cmd := re.match(r'scan_move\s+(.*)', input)) is not None:
+        move = match_cmd.group(1)
+        scan_move(move)
+        return
+
     elif input == 's' or input == 'n':
         cm = do_move()
     elif input == 'u':

@@ -8,6 +8,8 @@ import re
 
 from select_trace import SlTrace
 
+from chess_error import ChessError
+
 class ChessPieceMovement:
 
     """
@@ -118,7 +120,7 @@ class ChessPieceMovement:
             dir_type = piece_type
         dirs = ChessPieceMovement.piece_type_dir_d[dir_type]
         if piece_type == 'p':
-            if not self.is_moved(orig_sq):
+            if self.is_at_origin(piece, orig_sq):
                 rep = 2
             else:
                 rep = 1
@@ -192,6 +194,21 @@ class ChessPieceMovement:
 
 
         return sqs_d
+
+    def is_at_origin(self, piece, sq):
+        """ Check if pawn at origin sq
+        :piece: piece
+        :sq: occupying square
+        :returns TTrue if pawn at origin
+        """
+        file_int, rank_int = self.sq_to_file_rank(sq, to_int=True)
+        if piece == "p":
+            return True if rank_int == 7 else False
+    
+        if piece == "P":
+            return True if rank_int == 2 else False
+        
+        raise ChessError("{pice = } not a pawn")
     
     """ 
     Links to board

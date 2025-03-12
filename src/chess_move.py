@@ -4,6 +4,7 @@ import re
 
 from select_trace import SlTrace
 
+from chess_error import ChessError
 from chess_move_notation import ChessMoveNotation
 from chess_piece_movement import  ChessPieceMovement
 
@@ -67,6 +68,7 @@ class ChessMove:
         self.is_castle = False  # True - is castle
         self.is_castle_king_side = False  # castle kingside
         self.is_castle_queen_side = False # castle queenside
+        self.update = None
         
     def decode(self, spec):
         """ Decode move spec, in preparation for verification,
@@ -78,13 +80,16 @@ class ChessMove:
         # In the future we may access some of these to
         # self.cmn the chess notational entry
         #
+        self.spec = spec
         
         # Parse basic notation
         if self.cmn.decode_spec_parts(spec=spec):
+            self.cmn.make_move_update()
             return self.cmn.err
         
         # Complete parsing
         if self.cmn.decode_complete():        
+            self.cmn.make_move_update()
             return self.cmn.err         # return completed
         
         self.cmn.make_move_update()     # Update parse results
@@ -128,6 +133,22 @@ class ChessMove:
         
         if len(orig_sqs) < 1:
             return None         # No takers
+        
+        orig_file = self.cmn.orig_sq_file
+        if orig_file is None:
+            if len(piece_choice) > 0:
+                orig_file = piece_choice[0]
+        orig_sqs_with_file = []
+        for sq in orig_sqs:
+            orig_f,orig_r = self.sq_to_file_rank(sq)
+            if orig_f == orig_file:
+                orig_sqs_with_file.append(sq)
+        if len(orig_sqs_with_file) == 0:
+            return None
+        
+        if len(orig_sqs_with_file) == 1:
+            return orig_sqs_with_file[0]
+        
         if len(piece_choice) == 1:
             orig_sqs_2 = []
             for sq in orig_sqs:
@@ -209,6 +230,7 @@ class ChessMove:
                 return True
                 
         return False
+    
 
     def occupied_path(self, orig_sq, dest_sq,
                       exclude_orig=False, exclude_dest=False):
