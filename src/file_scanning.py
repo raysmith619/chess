@@ -1,4 +1,5 @@
-# file_scanning.py   10Sep2026  crs, Pulled from wx_chess_game_display.py
+# file_scanning.py  21Oct2026  crs, Testing Git
+#                   10Sep2026  crs, Pulled from wx_chess_game_display.py
 """ Furnish support to scan chess files
 """
 import os
