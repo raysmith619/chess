@@ -362,7 +362,15 @@ a number of repitions:
 Note that these direction repitions are modified by board conditions such as:
   - direction repition is "stopped" at board edge. 
   - direction repition is "stopped" by a piece in the path, keeping the occupied square
- if of the opponent, rejecting the occupied square of own color.
+ occupied by an opponent, but rejecting the square if occupied by a piece of own color.
+  - pawns, diagonal movement i.e., capture, repition in all cases, is set to 1.
+
+We found a bug - the lack of the restriction, limiting pawn movement on the diagonals
+to one.
+This bug was demonstrated by a position with the black king on e5 and a white
+pawn on its initial square of b2.  The move analyzer erroneously allowed the
+white pawn, in its initial square, an optional two moves on the diagonal b2-c3-d4.
+This erroneously limited the king move, excluding the valid square d4.
 
 The following small code section impliments the similarity between the moves of king, queen, rook
 and bishop.  In particular, the direction list for the queen is created by adding
