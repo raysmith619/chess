@@ -1,5 +1,11 @@
-#chess_game_show.py 25Feb2025  crs from chess_move_notation.py
-""" 
+#wx_chess_game_show.py 25Feb2025  crs from chess_game_show.py
+"""
+Adjusted to use wx_chess_game_display.py changes
+from chess_game_display.py particularly:
+    1. display_dispatch(self, cmd, *args, **kwargs)
+    2. cmd_<menu><sub_menu> functions run from 
+        wx_cgd_menus.py tables
+    
 Display chess position/game
 Board state for do/undo/redo is kept in a chessboard stack 
 chessboard_stack.py (ChessboardStack)
@@ -14,33 +20,38 @@ references the previou board state.
 A redo is produced by increasing the current board index so that it
 references the board before the previous undo.
 
-To hide the differences created with this stack level we include
-the most common Chessboard functions we include the same functions
-in ChessboardStack which will operate on the current board. 
+To minimize the differences created with this stack level we include
+the most common Chessboard functions.  The functins we include
+from Chessboard in ChessboardStack operate on the current board. 
 """
 
-"""
-"""
 import re
 import argparse
+import multiprocessing as mp
+import wx
+import pgn
 
 from select_trace import SlTrace
 
+from wx_speaker_control import SpeakerControlLocal
 
 from chess_error import ChessError
 from chessboard import Chessboard
 from chessboard_stack import ChessboardStack
 from chess_move import ChessMove
 from chess_move_notation import ChessMoveNotation
-from chessboard_display import ChessboardDisplay
+from wx_chess_game_display import ChessGameDisplay
 from chessboard_print import ChessboardPrint
 
 SlTrace.clearFlags()
 #SlTrace.setFlags("no_ts=0")        # Timestamps for loging
+app = wx.App()
 
-"""
+game_commentary = """
 Game of the Century
 From https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
+"""
+demo_game_text = """
 [Event "Third Rosenwald Trophy"]
 [Site "New York, NY USA"]
 [Date "1956.10.17"]
@@ -49,8 +60,6 @@ From https://en.wikipedia.org/wiki/Algebraic_notation_(chess)
 [Result "0-1"]
 [White "Donald Byrne"]
 [Black "Robert James Fischer"]
-"""    
-moves = """
 1.Nf3 Nf6 2.c4 g6 3.Nc3 Bg7 4.d4 O-O
 5.Bf4 d5 6.Qb3 dxc4 7.Qxc4 c6 8.e4 Nbd7
 9.Rd1 Nb6 10.Qc5 Bg4 11.Bg5 Na4 12.Qa3 Nxc3
@@ -63,6 +72,11 @@ moves = """
 37.Ke1 Bb4+ 38.Kd1 Bb3+ 39.Kc1 Ne2+ 40.Kb1
 Nc3+ 41.Kc1 Rc2# 0-1
 """
+pgn_games = pgn.loads(demo_game_text)
+demo_game = pgn_games[0]
+current_game = demo_game   # current game
+current_move_index = None  # current move index
+
 step_through = True        # wait till user commands
 xs = True
 update_as_loaded = True     # Display board change as game loaded
@@ -73,9 +87,10 @@ scan_max_loops = 1          # Limit scanning loops
 
 
 parser = argparse.ArgumentParser()
-parser.add_argument('-m', '--moves', default=moves,
+'''parser.add_argument('-m', '--moves', default=moves,
                     help=("Move string"
                             " (default:moves"))
+'''
 parser.add_argument('-f', '--file', default=None,
                     help=("Moves file"
                             " (default:use string"))
@@ -93,20 +108,25 @@ parser.add_argument('-q', '--quit_on_fail', action='store_true', default=quit_on
 args = parser.parse_args()             # or die "Illegal options"
 
 file = args.file
-moves = args.moves
+'''moves = args.moves'''
 quit_on_fail = args.quit_on_fail
 
+speaker_control = None      # Set up for speaker
+# Setup centralized speaker control
+if __name__ == '__main__':
+    mp.freeze_support()
+    speaker_control = SpeakerControlLocal()   # centralized access to sound/speech engine
 
 # Support board/display access
 cbs = None
 cbd = None
 move_spec_list = []
 
-def setup_display(moves=None):
+def setup_display(game):
     """ Setup display
     including basic board
-    :moves: chess moves
-            default: no moves
+    :game: chess game as pgn string
+            default: no game
     """
     global cbs, cbd, move_spec_list
     
@@ -114,29 +134,28 @@ def setup_display(moves=None):
     cbs = ChessboardStack()
     cbs.push_bd(cb)
     cb.standard_setup()         # Starting position
-    cbd = ChessboardDisplay(cbs, title="Begin Game", scan_max_loops=scan_max_loops)
+    cbd = ChessGameDisplay(cbs, title="Begin Game",
+                           speaker_control=speaker_control)
     if cbd.is_display_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     cbp = ChessboardPrint(cb)
-    if moves is not None:
-        move_specs = ChessMoveNotation.game_to_specs(moves)
-        move_spec_list = move_specs[:]
+    if game is not None:
+        move_spec_list = game.moves
     cbd.display_board()
     
     
-def setup_board(move_specs):
+def setup_board(game):
     """ Setup new game board
-    :move_specs: list of move specifications
+    :game: game in pgn 
     """
-    global move_spec_list
-    move_spec_list = move_specs[:]       # Copy list
-
-setup_display()
-move_specs = ChessMoveNotation.game_to_specs(moves)
-setup_board(move_specs)    
-#cbd.mainloop()
-
+    global current_game, current_move_index
+    
+    cbd.sel_game = game
+    current_game = game
+    current_move_index = 0
+    cbd.restart()
+    
 def get_move_desc():
     """ Get move descriptor / title
         AFTER move has been made (i.e., in title of board display)
@@ -171,9 +190,10 @@ def display_board(desc=None, new_display=False):
     
     bd_str = cbp.display_board_str(display_options=display_options)
     gdesc = "" if game_desc is None else game_desc
+    file_desc = ""
     if cbd.scan_nfile > 0:
-        desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
-    desc = f"{desc:<15}"  + gdesc
+        file_desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
+    desc = file_desc + f"{desc:<15}"  + gdesc
     if cbd.is_printing_board:
         SlTrace.lg("\n"
                    +desc+
@@ -184,28 +204,31 @@ def display_board(desc=None, new_display=False):
     if new_display:
         cbs = cbs.copy()
         cb = cbs.get_bd()
-        cbd = ChessboardDisplay(cbs, from_display=cbd)
+        cbd = ChessGameDisplay(cbs,
+                           speaker_control=speaker_control)
     cbd.display_board(title=desc)    # Use current state
     move_interval = cbd.loop_interval
-    cbd.update()
-    pass
+    #cbd.update()
 
 def get_next_move():
     """ Get next move from
         1. redo stack if any
             else
-        2. move spec list if any
+        2. current game, if any
     :returns: None if none left
                 ChessMove if a redo
                 move_spec if from move spec list
-    """    
+    """
+    global current_game, current_move_index
+        
     if (cm := cbs.move_redo()) is not None:  # Use redo, if any pending
         return cm   # bd_stack is adjusted
+    moves = current_game.moves
+    if current_move_index >= len(moves):
+        return None         # No more moves in game
     
-    if len(move_spec_list) == 0:
-        return None         # No more in list
-    
-    move_spec = move_spec_list.pop(0)
+    move_spec = moves[current_move_index]
+    current_move_index += 1
     return move_spec    
 
 def error_show(desc=None):
@@ -245,7 +268,7 @@ def do_move(cm_or_spec=None):
     else:
         cm = cm_or_spec
     if cm is not None and cm.game_result is not None:
-        #stop_loop()
+        display_board()
         return None
     return cm
         
@@ -328,12 +351,24 @@ def scan_pause():
 def scan_move(move):
     """ Do move from scan
     :move: move specification
+            NEW_GAME for new game
+            END_GAME at end of game
+            END_SCAN at end of scan
     """
+    if move == cbd.NEW_GAME:
+        scan_new_game(cbd.sel_game)
+        return
+    
+    elif move == cbd.END_GAME:
+        SlTrace.lg("Game end")
+        return
+    
+    elif move == cbd.END_SCAN:
+        SlTrace.lg("End of scanning")
+        return
+        
     if do_move(move) is None:
-        #scan_pause()
-        cm = cbs.get_move()
-        SlTrace.lg(f"{cm}")
-        #error_show(f"{cm}")
+        SlTrace.lg("Unexpected move ending")
         return
     
     desc = get_move_desc()
@@ -352,25 +387,35 @@ def scan_new_game(input):
     if game is None:
         return          # None to have
     
-    setup_display()
+    #setup_display()
     game_desc = f"{cbd.sel_short_desc} {cbd.scan_file_name}"
-    setup_board(game.moves)
+    setup_board(game)
     display_board()
-    
-def get_file_games():
+
+def scan_next_game():
+    """ Go to next scaned game
+    """
+    cbd.scan_next_game()
+    scan_new_game()
+        
+def get_file_games(cmd, *args, **kwargs):
     """ Get games, already read, from file
         Setup game and display
     """
     global game_desc
     global move_spec_list
     
-    game = cbd.sel_game
+    selection = kwargs["selection"]
+    index = selection[0]
+    game = selection[-1]
     if game is None:
         return          # None to have
+    short_desc = (f"{game.white} vs. {game.black}"
+                f" {game.event} {game.date}")
     
     stop_loop()     # Stop action incase going
     restart_game()
-    game_desc = cbd.sel_short_desc
+    game_desc = short_desc
     setup_board(game.moves)
 
 def goto_move_idx(input):
@@ -433,11 +478,17 @@ def new_window():
     """ Create new independant window with current game state
     """
     display_board(desc="New Window", new_display=True)
-                    
-def display_cmd_proc(input):
+                
+def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
+    """ Dispatch action requests
+    :cbdisp: ChessGameDisplay instance
+    :cmd: command identifying string
+    :args: positional args,
+    :kwargs: keyword args
+    """
     """ Process display commands
-        Note to synchronize display window, all calls should include display id
-    :input: command string [<display id>] removed if present
+        cbdisp contains attribute display_id, a unique display id
+    command string
         s,n: do_move
         u: undo move
         r: redo_move
@@ -449,54 +500,58 @@ def display_cmd_proc(input):
         we <display_id>: Set context to new display        
     """
     global cbd, cbs
-    if (match_input:=re.match(r'(.*)(\[[^]]*\])$', input)):
-        input, display_info = match_input.groups()
-        SlTrace.lg(f"input: {input} display_info: {display_info}")
-        if (match_display_info:=re.match(r'\[(\d+)([^]]*)\]$', display_info)):
-            display_id, _ = match_display_info.groups()
-            cbdisp = ChessboardDisplay.get_display(display_id)
-            if cbdisp is None:
-                raise ChessError(f"Display_id {display_id} out of range")
-                return
-            
-            cbd = cbdisp
-            cbs = cbd.cbs         
-    fen_cmd_prefix = "get_fen: "
-    goto_move_idx_prefix = "goto_move_idx"
+    # Set command's display, id, board stack
+    display_id = cbd.display_id
+    cbd = cbdisp
+    cbs = cbd.cbs         
     cm = None
-    # Process all multicharacter commands
-    if (match_multi_cmd:=re.match(r'(\w+)\s+(.*)$', input)):
-        cmd,cmd_args = match_multi_cmd.groups()
-        if cmd == "enter_moves":
-            return do_moves(cmd_args)
+    # Process commands
+    if cmd == "game file":
+       return get_file_games(cmd, *args, **kwargs)
+    
+    elif cmd == "chess_move":
+        cm = do_move()
+    
+    elif cmd == "chess_unmove":
+        cm = undo_move()
+        desc = get_move_desc()      # Incase at beginning
+        display_board(desc=desc)
+        return
+    
+    elif cmd == "loop_play":
+        loop_game()
+        return
+    
+    elif cmd == "chess_redo":
+        cm = redo_move()
         
-        elif cmd == "get_fen":
-            return get_fen_cmd(cmd_args)
+    elif cmd == "enter_moves":
+        return do_moves(*args, **kwargs)
         
-        elif cmd == "goto_move_idx":
-            return get_fen_cmd(cmd_args)
+    elif cmd == "get_fen":
+        return get_fen_cmd(args[0])
+    
+    elif cmd == "goto_move_idx":
+        return goto_move_idx(args[0])
+    
+    elif cmd == "print_fen":
+        cbd.print_fen()
+    
+    elif cmd == "scan_new_game":
+        return scan_new_game(input)
+    
+    elif cmd == "scan_move":
+        return scan_move(args[0])
+    
+    elif cmd == "stop":
+        return stop_loop()
         
-        elif cmd == "scan_new_game":
-            return scan_new_game(input)
-        
-    if input == "f":    # Read game(s) from file
+    elif input == "f":    # Read game(s) from file
         get_file_games()
         return
     elif input == "e":  # Print FEN
         cb = cbs.get_bd()
         cb.print_board_to_fen()
-        return
-    
-    elif input.startswith(fen_cmd_prefix):
-        get_fen_cmd(input[len(fen_cmd_prefix):])
-        return
-    
-    elif input.startswith(goto_move_idx_prefix):
-        goto_move_idx(input[len(goto_move_idx_prefix):])
-        return
-    
-    elif input.startswith("scan_new_game"):
-        scan_new_game(input)
         return
     
     elif (match_cmd := re.match(r'scan_move\s+(.*)', input)) is not None:
@@ -534,7 +589,10 @@ def display_cmd_proc(input):
         display_board(desc=desc)
 
 
-cbd.set_cmd(display_cmd_proc)     
-cbd.update()
-            
-cbd.mainloop()     
+
+if __name__ == '__main__':
+    setup_display(demo_game)
+    setup_board(demo_game)    
+    cbd.set_cmd(display_cmd_proc)     
+    cbd.update()            
+    cbd.mainloop()     

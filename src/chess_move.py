@@ -9,20 +9,19 @@ from chess_move_notation import ChessMoveNotation
 from chess_piece_movement import  ChessPieceMovement
 
 class ChessMove:
-    def __init__(self, board, to_move=None):
-        self.board = board
-        if to_move is not None:
-            self.set_to_move(to_move)
-        self.move_no = board.get_move_no()
-        self.to_move = board.get_to_move()
+    def __init__(self, board, spec=None):
         self.setup()        # Initialize state    
+        self.board = board
+        self.move_no = board.get_move_no()  # As of move creation
+        self.to_move = board.get_to_move()  # As of move creation)
+        self.spec = spec
         self.cmn = ChessMoveNotation(self)
         self.cpm = ChessPieceMovement(board)
 
     def __str__(self):
         """ String form for debugging/analysis
         """
-        ret = f"ChessMove: {self.spec}"
+        ret = f"ChessMove: {self.get_move_no()}: {self.spec}"
         ret += f"  {self.get_to_move()}"
         ret += f" {self.piece}"       # piece e.g, K == white king
         if self.err:
@@ -39,7 +38,7 @@ class ChessMove:
         ret += f" dest_sq:{self.dest_sq}" # move's destination square
         if self.dest_sq_mod:
             ret += f"dest_sq_mod:{self.dest_sq_mod}"
-        if not self.update:
+        if self.update is not None and self.update:
             ret += " NO to_move update"  # update to_move after successful move
         return ret
 
@@ -48,7 +47,7 @@ class ChessMove:
         which can be updated via decode...
         """
         self.err = None         # Error msg, None == no error
-        self.spec = None        # move specification
+        self.spec = None        # move specification set in init
         self.has_movement = True     # if move does some change
         self.game_result = None # set with game result
         self.is_check = False   # True if check
@@ -134,37 +133,57 @@ class ChessMove:
         if len(orig_sqs) < 1:
             return None         # No takers
         
-        orig_file = self.cmn.orig_sq_file
-        if orig_file is None:
+        orig_sq_file = self.cmn.orig_sq_file
+        dest_file,dest_rank = self.sq_to_file_rank(dest_sq)
+        if orig_sq_file is None:
             if len(piece_choice) > 0:
-                orig_file = piece_choice[0]
-        orig_sqs_with_file = []
-        for sq in orig_sqs:
-            orig_f,orig_r = self.sq_to_file_rank(sq)
-            if orig_f == orig_file:
-                orig_sqs_with_file.append(sq)
-        if len(orig_sqs_with_file) == 0:
-            return None
+                if len(piece_choice) == 1:
+                    orig_rank_or_file = piece_choice[0]
+                    if re.match(r'\d+', orig_rank_or_file):
+                        is_rank = True
+                    else:
+                        is_rank = False
+                        
+                    pos_sqs = []       # Possible squares
+                    for sq in orig_sqs:
+                        orig_f,orig_r = self.sq_to_file_rank(sq)
+                        if is_rank:
+                            if orig_r == orig_rank_or_file:
+                                pos_sqs.append(sq)
+                        else:
+                            if orig_f == orig_rank_or_file:
+                                pos_sqs.append(sq)
+                    
+                    if len(pos_sqs) == 0:
+                        return self.err_add(f"No possibilities for  spec:{self.spec}")
+                    
+                    if len(pos_sqs) == 1:
+                        return pos_sqs[0]     # Just enough == 1
+                    
+                    if len(pos_sqs) > 1:
+                        return self.err_add(f"Ambiguous spec:{self.spec}"
+                                            f" orig sqposibilities: {pos_pss}")
+
+                if len(self.piece_choice) == 2:
+                    return self.err_add(f"TBD: two char piece_choice spec: {self.spec}")
+
+                if len(self.piece_choice) > 2:
+                    return self.err_add(f"Unrecognized piece_choice spec: {self.spec}")
         
-        if len(orig_sqs_with_file) == 1:
-            return orig_sqs_with_file[0]
-        
-        if len(piece_choice) == 1:
-            orig_sqs_2 = []
+        if orig_sq_file is not None:
+            pos_sqs = []
             for sq in orig_sqs:
-                if sq.startswith(piece_choice):
-                    orig_sqs_2.append(sq)
-            if len(orig_sqs_2) == 1:
-                return orig_sqs_2[0]
-            
-            if len(orig_sqs_2) > 1:
-                SlTrace.lg(f"Ambiguous orig_sq: {orig_sqs_2}"
-                           f" for {self.spec}")
+                sq_file, sq_rank = self.sq_to_file_rank(sq)
+                if sq_file == orig_sq_file:
+                    pos_sqs.append(sq)
+            if len(pos_sqs) == 0:
+                self.err_add(f"No origin for spec:{self.spec}")
                 return None
             
-        # TBD - Handle rank and double piece_choice
-        return None
-            
+            if len(pos_sqs) == 1:
+                return pos_sqs[0]     
+
+        return self.err_add(f"Don't handle piece_choice spec: {self.spec}")            
         
     def find_orig_sq(self):
         """ Determine original move square
@@ -179,8 +198,8 @@ class ChessMove:
         candidate_ps = self.get_pieces(self.piece)
         capt_sqs = []       # to fill with squares that can move to
                             # our capture our destination 
-        if len(candidate_sqs) == 1:
-            return self.ps_to_sq(candidate_sqs[0])
+        if len(candidate_ps) == 1:
+            return self.ps_to_sq(candidate_ps[0])
     
     def rel_sq(self, base_sq, at_rank=None, rel_rank=None):
         """ find square relative to given sq
@@ -359,6 +378,27 @@ class ChessMove:
         return self.cmn.decode_spec_parts(spec=spec)                        
 
     """
+    Error processing
+    """
+       
+    def err_add(self, msg=None):
+        """ Set and Count errors
+        :msg: count as error if msg != ""
+            default: self.err - current parsing error message
+        :returns: msg
+        """
+        self.err = msg
+        
+        return msg
+
+
+    """
+    Links to move notation
+    """
+ 
+    
+    
+    """
     Links to board functions
     """
 
@@ -368,7 +408,7 @@ class ChessMove:
                 default: kingside                
         :returns: True if the requested castling is permited
         """
-        return self.board.can_castle(king_side=True, to_move=None)
+        return self.board.can_castle(king_side=king_side, to_move=to_move)
 
     def file_rank_to_sq(self, file=None, rank=None):
         """ Convert rank, file to sq notation
@@ -384,7 +424,7 @@ class ChessMove:
         return file+rank
 
     def get_move_no(self):
-        """ Get chess game move number, assuming
+        """ Get chess game move number as of beginning of move
         started with white
         """
         return self.move_no
@@ -418,7 +458,7 @@ class ChessMove:
     def get_to_move(self):
         """ Whose move is it?
         """
-        return self.board.get_to_move()
+        return self.to_move
 
     def set_to_move(self, to_move=None):
         """ set who to move

@@ -11,17 +11,22 @@ Additions:
     stuff 1/2-1/2                      game result - draw
     stuff +                 Bxc4+      move with check
     stuff #
+    stuf=<promoted piece type>  e1=Q   promote
     
-basic move patterns                      
+basic move patterns 
+# to avoid "x" take as a letter we will go a-w instead of a-z
+    <game result> with no follow on move - e.g. resign                     
     O-O, O-O-O              O-O O-O-O
-    ([A-Z])([a-z]\d+)     Nf3 Nf6 Nc3 Bg7 Rd1
-    [a-z]\d+            c4 g6 d4 c6
-    [a-z]x[a-z]\d+          dxc4
-    [A-Z]x[a-z]\d+          Qxc4 Nxc3 Nxd4+
-    [A-Z][a-z][a-z]\d+      Nbd7
-    [A-Z][a-z][a-z]\d+      Rfe8+
-    [A-Z][a-z]]d+[a-z]\d+   Qh4e1
-    [a-z]x[a-z]             bxc
+    ([A-Z])([a-w]\d+)     Nf3 Nf6 Nc3 Bg7 Rd1
+    [a-w]\d+            c4 g6 d4 c6
+    [a-w]x[a-w]\d+          dxc4    # to avoid "x" take as a letter we will go a-w instead of a-w
+    [A-Z]x[a-w]\d+          Qxc4 Nxc3 Nxd4+
+    [A-Z][a-w][a-w]\d+      Nbd7
+    [A-Z][a-w][a-w]\d+      Rfe8+
+    [A-Z][a-w]]d+[a-w]\d+   Qh4e1
+    [A-Z]d+]d+[a-w]\d+      R5a4+   R on rank 5 move to a4 with check
+    [a-w]x[a-w]             bxc
+    [a-w]x[a-w]\d+          axb3
     """
 
 """
@@ -80,8 +85,44 @@ class ChessMoveNotation:
         if self.has_movement is not None and not self.has_movement:
             ret += " ending move"
         return ret
+
+    def check_legal_move(self):
+        """ Check legality of move as soon as possible
+        Do it in a way to report to a, possibly, niave user
+        what is most obviously wrong with the move
+        Use current move values e.g., self.piece, self.dest
+        
+        :returns: return descriptive error message if one, else None
+        """
+        board = self.cm.board
+    
+        if self.is_castle_king_side:
+            if not self.can_castle(king_side=True):
+                return self.err_add(f"Can't castle king side")
             
-                        
+        if self.is_castle_queen_side:
+            if not self.can_castle(king_side=False):
+                return self.err_add(f"Can't castle queen side")
+                            
+        if self.piece is not None:
+            pieces = board.get_pieces(piece=self.piece)            
+            if len(pieces) == 0:
+                return self.err_add(f"No {self.piece} present")
+        
+        if self.dest_sq is not None:
+            in_dest_sq = board.get_piece(sq=self.dest_sq)
+            if self.is_capture:
+                if in_dest_sq is None:
+                    if (board.poss_en_passant != self.dest_sq
+                            or self.piece_to_type(self.piece) != 'p'):
+                        return self.err_add(f"capture at {self.dest_sq} is empty")
+                
+            else:       # Non-capture mo
+                if in_dest_sq is not None:
+                    return self.err_add(
+                        f"Non-capture at {self.dest_sq} is occupied with {in_dest_sq}")
+        return None         
+                            
     def decode_spec_parts(self, spec):
         """ Decode standard specification, creating parts
         for possible disambuation, verification, and execution:
@@ -115,7 +156,8 @@ class ChessMoveNotation:
         self.is_castle = False  # True - is castle
         self.is_castle_king_side = False  # castle kingside
         self.is_castle_queen_side = False # castle queenside
-
+        self.en_passant_sq = None           # Set to sq if executed
+        self.promoted_piece = None          # Promoted piece, if any = use self.dest_sq_mod
         spec_rem = spec     # remaining, adjusted as parts are decoded
         # Check if game result
         if (match_res := re.match(r'(.*)\s*(([0-1]-[0-1])|(1/2-1/2))\s*$', spec_rem)):
@@ -127,7 +169,7 @@ class ChessMoveNotation:
                 return self.err_add()   # Done with parsing
              
         # Check if check or mate
-        if (match_res := re.match(r'(.*)\s*([+#])$', spec_rem)):
+        if (match_res := re.match(r'(.*)\s*([+#])\s*$', spec_rem)):
             spec_rem,check_or_mate = match_res.groups()
             if check_or_mate == '+':
                 self.is_check = True
@@ -144,11 +186,20 @@ class ChessMoveNotation:
                 self.is_castle_king_side = True
             return None     # Done part checking
         
+        # Check if promotion
+        if (match_promote := re.match(r'(.*)=([A-Z])$', spec_rem)):
+            spec_rem, promoted = match_promote.groups()
+            if self.cm.get_to_move() == 'white':
+                self.promoted_piece = promoted.upper()
+            else:
+                self.promoted_piece = promoted.lower()
+            self.dest_sq_mod = self.promoted_piece  # duplication ???
+            
         # Pick off destination from tail end
         # <file><rank> or <file>
-        if (match_res := re.match(r'(.*)([a-z]\d+)$', spec_rem)):
+        if (match_res := re.match(r'(.*)([a-w]\d+)$', spec_rem)):
             spec_rem,self.dest_sq = match_res.groups()
-        elif (match_res := re.match(r'(.*)([a-z])$', spec_rem)):
+        elif (match_res := re.match(r'(.*)([a-w])$', spec_rem)):
             spec_rem,self.dest_sq_file = match_res.groups()
 
         # Determine if capture
@@ -161,7 +212,7 @@ class ChessMoveNotation:
             piece, spec_rem = match_res.groups()
             self.piece_type = self.piece_to_type(piece)
             self.piece_choice = spec_rem
-        elif (match_res := re.match(r'([a-z])(.*)$', spec_rem)):
+        elif (match_res := re.match(r'([a-w])(.*)$', spec_rem)):
             self.orig_sq_file,spec_rem = match_res.groups()
             self.piece_choice = spec_rem
         elif spec_rem == "":
@@ -169,39 +220,50 @@ class ChessMoveNotation:
             self.piece_choice = ""
         else:
             self.err = f"Can't determine active piece from {spec_rem}"
+            self.err += f" {self.get_move_no()}."
             self.err += f" spec: {self.spec}"
             return self.err_add(self.err)
-        
+
+        # Complete piece determination
+        if self.decode_piece():
+            return self.err_add()
+    
+        if self.check_legal_move():
+            return self.err_add()
+            
         return None
     
     def decode_complete(self):
         """ Finish decoding process, started by decode_spec_parts
         Uses settings in self (ChessMoveNotation instance)
+        :returns: err msg, None if OK
         """
         if not self.has_movement:
             return self.err_add()   # No movement - no more parsing
         
         if self.is_castle:
-            self.decode_castle()
-            return self.err_add()
-
-        # Complete piece determination
-        if self.decode_piece():
-            return self.err_add()
+            if self.decode_castle():
+                return self.err_add()
+            
+            return None
         
         # Complete parsing destination square
         if self.decode_orig_sq():
-            return self.err_add()
+            return None
         
         # Complete parsing origin square
         if self.decode_orig_sq():
-            return self.err_add()
+            return None
+
+        # Indicate if en passant was executed
+        if self.dest_sq == self.cm.board.poss_en_passant and self.piece_type == 'p':
+            self.en_passant_sq = self.dest_sq
 
     def decode_piece(self):
         """ Complete determination of move piece
         """
         if self.piece is not None:
-            return self.err_add()
+            return None
         
         if self.piece_type is None:
             if self.orig_sq_file is not None:
@@ -209,19 +271,26 @@ class ChessMoveNotation:
 
         self.piece = self.piece_type_to_piece(self.piece_type)
         if self.piece is None:
-            return self.err_add("Can't determine piece from {self.spec}")        
-        return self.err_add()
+            err = f" {self.get_move_no()}."
+            err += f"Can't determine piece from {self.spec}"
+            return self.err_add(err)
+                
+        return None
 
     def decode_dest_sq(self):
         """ Complete parsing destination square
         """
         if self.dest_sq is not None:
-            return self.err_add()   # Quit if already got it.
+            return None   # Quit if already got it.
         
         if self.dest_sq_file is not None:
             if self.orig_sq_file is not None:
-                return self.err_add("Going to do axb case later")
-        return self.err_add()       # OK 
+                err = "Going to do axb case later"
+                err += f" {self.get_move_no()}."
+                err += f" {self.spec}"
+                return self.err_add(err)
+            
+        return None       # OK 
     
     def decode_orig_sq(self):
         """ Continue spec parsing to determine move's piece
@@ -233,18 +302,24 @@ class ChessMoveNotation:
             return self.err_add()   # Quit if already got it.
         
         if self.dest_sq is None:
-            return self.err_add("Can't get orig_sq if no dest_sq")
-
+            return self.err_add("Can't get orig_sq if no dest_sq"
+                                f" {self.get_move_no()}."
+                                f" {self.spec}")
+    
+        
         sq = self.get_orig_sq(piece = self.piece,
                               piece_choice=self.piece_choice,
                               dest_sq=self.dest_sq)
         if sq is None:
-            return self.err_add(f"Can't find orig_sq, spec={self.spec}"
+            return self.err_add(f"Can't find orig_sq,"
+                                f" {self.get_move_no()}."
+                                f" spec={self.spec}"
                                 f" with piece = {self.piece},"
+                                f" {self.cm.to_move = },"
                               f" piece_choice={self.piece_choice},"
                               f" dest_sq={self.dest_sq}")
         self.orig_sq = sq
-        return self.err_add()
+        return None
          
     def decode_castle(self):
         """ Complete castle parsing
@@ -278,7 +353,7 @@ class ChessMoveNotation:
                 king_dest = "g8"
                 rook_sq = "h8"
                 rook_dest = "f8"
-        else:
+        else:                   # queen side
             if not(err := self.can_castle(False)):
                 return err
             
@@ -289,7 +364,7 @@ class ChessMoveNotation:
                 rook_dest = "d1"
             else:
                 king_sq = "e8"
-                king_dest = "g8"
+                king_dest = "c8"
                 rook_sq = "a8"
                 rook_dest = "d8"
         self.orig_sq = king_sq
@@ -314,7 +389,8 @@ class ChessMoveNotation:
             self.err_count += 1
             if self.err_first is None:
                 self.err_first = msg
-                self.err_first_move_no = self.cm.get_move_no()
+                self.err_first_move_no = self.get_move_no()
+            msg = f"{self.err_first_move_no}: {msg}"
         return msg    
 
     @staticmethod
@@ -333,14 +409,13 @@ class ChessMoveNotation:
         :returns: list of move specs
         """
         game_str = game_str.rstrip()
-        gs_move_pairs = re.split(r'\s*\d+\.', game_str)
+        gs_move_pairs = re.split(r'\s*\d+\.\s*', game_str)
         moves = []
         for move_pair in gs_move_pairs:
             if move_pair == '':
                 continue
-            wmove, bmove = re.split(r'\s+', move_pair, maxsplit=1)
-            moves.append(wmove)
-            moves.append(bmove)
+            wbs = re.split(r'\s+', move_pair, maxsplit=1)
+            moves.extend(wbs)
         return moves
 
 
@@ -379,6 +454,11 @@ class ChessMoveNotation:
         return self.cm.get_orig_sq(piece=piece, piece_choice=piece_choice,
                                    dest_sq=dest_sq)
 
+    def get_move_no(self):
+        """ Get move no
+        """
+        return self.cm.get_move_no()
+    
     def get_to_move(self):
         """ Whose move is it?
         """
@@ -416,6 +496,9 @@ class ChessMoveNotation:
         move.orig2_sq = self.orig2_sq
         move.dest2_sq = self.dest2_sq
         move.dest2_sq_mod = self.dest2_sq_mod
+        move.promoted_piece = self.promoted_piece   # Just to indicate promotion
+        move.en_passant_sq = self.en_passant_sq
+        
         if self.err:
             move.err = self.err
         
@@ -484,6 +567,7 @@ if __name__ == "__main__":
     
     from chess_move import ChessMove  # For minimal support
     from chessboard import Chessboard  # For minimal support
+    from chessboard_stack import ChessboardStack    # For minimal support
     from chessboard_print import ChessboardPrint
     from chessboard_display import ChessboardDisplay
     
@@ -497,10 +581,11 @@ if __name__ == "__main__":
     #just_board = True
     include_board = True
     gui_display = True
+    gui_display = False         # No GUI
     cb = Chessboard()
-    cb.standard_setup()
     cbp = ChessboardPrint(cb)
-
+    cbs = ChessboardStack()
+    cbs.push_bd(cb)
     cm = ChessMove(cb)
     cmn = ChessMoveNotation(cm)
 
@@ -523,7 +608,7 @@ if __name__ == "__main__":
         SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
         if gui_display:
             mw2 = tk.Toplevel()     # Subsequent window                
-            cbd = ChessboardDisplay(cb.copy())
+            cbd = ChessboardDisplay(cbs)
             cbds.append(cbd)
             cbd.display_board(title=desc)
             cbd.update()
@@ -580,28 +665,30 @@ if __name__ == "__main__":
     
     
     move_specs = ChessMoveNotation.game_to_specs(moves) 
+    desc = cbs.get_move_desc() 
+    display_board(desc)
     for move_spec in move_specs:
+        cbs.push_bd(cb)
         cm = ChessMove(cb)
-        move_no = cm.get_move_no()
-        to_move = cm.get_to_move()
-        move_no_str = f"move {move_no:2}: "
-        if   to_move == "black":
-            move_no_str = " " * len(move_no_str)
+        cb.cm = cm
+        cm.spec = move_spec
         stage = "notation"
         if cmn.decode_spec_parts(move_spec):
-           SlTrace.lg(f"{move_no_str} {stage} Error: {move_spec}: {cmn.err}")
-           if quit_on_fail:
-               break
+            desc = cbs.get_move_desc()
+            SlTrace.lg(f"{desc} {stage} Error: {move_spec}: {cmn.err}")
+            if quit_on_fail:
+                break
            
         else:
+            desc = cbs.get_move_desc()
             if not just_complete and not just_board:
-                SlTrace.lg(f"{move_no_str} {stage} {cmn}")
+                SlTrace.lg(f"{desc} {stage} {cmn}")
                 if just_parts:
                     cmn.make_move(just_notation=True)
                     continue
             stage = "+bd info"
             if cmn.decode_complete():
-                SlTrace.lg(f"{move_no_str} {stage} {cmn.err}")
+                SlTrace.lg(f"{desc} {stage} {cmn.err}")
                 bd_str = cbp.display_board_str()
                 SlTrace.lg("\n"+bd_str)                
                 if quit_on_fail:
@@ -609,16 +696,11 @@ if __name__ == "__main__":
                 continue
             else:
                 if not just_board:
-                    SlTrace.lg(f"{move_no_str} {stage} {cmn}")
+                    SlTrace.lg(f"{desc} {stage} {cmn}")
                 
         cmn.make_move()
         if include_board or just_board or SlTrace.trace("print_board"):
-            desc = f"After Move: {move_no}" 
-            if to_move == "black":
-                prev_white_move = cb.get_prev_move(back=-2)   # After save
-                prev_desc = prev_white_move.spec
-                desc += f" {prev_desc}"
-            desc += f" {cmn.spec}"
+            desc = cbs.get_move_desc() 
             display_board(desc)
 
     SlTrace.lg(f"End of selftest from {__file__}")
