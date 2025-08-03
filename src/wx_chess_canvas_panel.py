@@ -163,8 +163,8 @@ class ChessCanvasPanel(CanvasPanel):
         :set: state default: True
         """
         self.changed = set
-        if set:
-            self.Refresh()
+        #if set:
+        #    self.Refresh()
         #self.changed = True
 
     def draw_square(self, ic=None, ir=None, dc=None):
@@ -190,6 +190,7 @@ class ChessCanvasPanel(CanvasPanel):
     def OnPaint(self, e):
         """ Draw board
         """
+        #self.Freeze()
         dc = wx.PaintDC(self.grid_panel)
         #if not self.changed:
         #    return
@@ -234,6 +235,7 @@ class ChessCanvasPanel(CanvasPanel):
         self.display_pending(dc)
         #self.Refresh()
         #self.set_changed(False)
+        #self.Thaw()
         
     def scale_points(self, pts, sfx=None, sfy=None):
         """ scale a list of two dimensional points
@@ -409,7 +411,7 @@ class ChessCanvasPanel(CanvasPanel):
             if type(id_tag) == int:
                 if id_tag == item.canv_id:
                     item.deleted = True
-                    item.refresh()          # Force redraw
+                    #item.refresh()          # Force redraw
                     break   # id is unique
             
                 if id_tag in item.tags:
@@ -752,7 +754,7 @@ class ChessCanvasPanel(CanvasPanel):
         '''
         self.time_of_update = time.time()
         if full:
-            self.grid_panel.Refresh()
+            #self.grid_panel.Refresh()
             #self.grid_panel.Update()
             return
     
@@ -1064,7 +1066,7 @@ class ChessCanvasPanel(CanvasPanel):
             if type(id_tag) == int:
                 if id_tag == item.canv_id:
                     item.deleted = True
-                    item.refresh()          # Force redraw
+                    #item.refresh()          # Force redraw
                     break   # id is unique
             
                 if id_tag in item.tags:

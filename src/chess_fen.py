@@ -382,5 +382,3 @@ if __name__ == '__main__':
     except:
         if_fail_report("Failed import from initial Chessboard")
     
-                                    
-    test_summary()

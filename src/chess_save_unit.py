@@ -113,4 +113,3 @@ class ChessSaveUnit:
         board.can_castle_white_queenside = self.can_castle_white_queenside
         board.can_castle_black_kingside = self.can_castle_black_kingside
         board.can_castle_black_queenside = self.can_castle_black_queenside
-    

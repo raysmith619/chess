@@ -17,7 +17,9 @@ import wx
 
 import pgn
 
+from gr_input import gr_input        
 from wx_speaker_control import SpeakerControlLocal
+
 from chessboard import Chessboard
 from wx_chessboard_panel import ChessboardPanel
 from wx_grid_path import GridPath
@@ -101,24 +103,32 @@ class ChessGameDisplay(wx.Frame):
             default: 800
         :title: window title
         """
+        self.going_to_move_no = None    # Check if move
+                                        # pause loop if at move
         ChessGameDisplay.base_display_id += 1
         self.display_id = self.base_display_id
         self.call_later = None  # instance for stopping
         self.on_cmd = None
         self.err_count = 0
+        self.prev_fen = None    # last entered
         self.is_display_fen = True  # True - display FEN
         self.is_looping = False
+        self.is_scanning = False
         self.is_scanning_paused = False
         self.scan_file_name = None
         self.scan_is_force_next_game = False
-        self.scan_is_stop_on_error = True  # stop on error
+        self.setting_is_stop_on_error = True  # stop on error
         self.scan_max_loops = 1
         self.scan_nfile = 0
         self.scan_ngame = 0
         self.sel_short_desc = None
         self.sel_game = None
-        self.is_printing_board = True
-        self.is_printing_fen = True
+        self.setting_game_start_no = 1
+        self.setting_game_end_no = None # No limit
+        self.setting_is_move_display = True
+        self.setting_is_final_position_display = True
+        self.setting_is_printing_board = True
+        self.setting_is_printing_fen = True
         self.loop_interval = 250    # msec loop interval
         self.cbs = cbs
         if app is None:
@@ -239,7 +249,7 @@ class ChessGameDisplay(wx.Frame):
         cb = Chessboard()
         self.cbs = ChessboardStack()
         self.cbs.push_bd(cb)
-        self.display_board()
+
 
     """ 
     Menu top level functions
@@ -306,6 +316,68 @@ class ChessGameDisplay(wx.Frame):
         self.is_scanning = True     # Scanning files in progress
         self.scan_loops = 0         # Keep count
         self.scan_files_start()
+
+
+    def setting_game_start_cmd(self):
+        from gr_input import gr_input        
+        new_val_str = gr_input("Starting game no",
+                               default=str(self.setting_game_start_no))
+        self.setting_game_start_no = int(new_val_str)
+
+    def setting_game_end_cmd(self):
+        """ default: None - No limit
+        """
+        from gr_input import gr_input        
+        new_val_str = gr_input("Starting game no",
+                               default=str(self.setting_game_start_no+1))
+        self.setting_game_end_no = int(new_val_str)
+
+            
+    def setting_move_display_cmd(self,_=None):
+        self.setting_is_move_display = True
+       
+    def setting_move_display_no_cmd(self,_=None):
+        self.setting_is_move_display = False
+
+    def setting_final_position_display_cmd(self):
+        self.setting_is_final_position_display = True
+
+    def setting_final_position_display_no_cmd(self):
+        self.setting_is_final_position_display = False
+        
+        
+    def setting_loop_interval_cmd(self):
+        """ Set/change loop interval
+        """
+        from gr_input import gr_input
+        
+        interval = self.loop_interval
+        new_val_str = gr_input("Loop interval(msec)", default=str(interval))
+        print(f"{new_val_str = }")
+        if new_val_str == "":
+            return
+        interval = int(new_val_str)
+        self.loop_interval = interval
+
+    def setting_print_bd_cmd(self):
+        self.setting_is_printing_board = True
+
+    def setting_print_bd_no_cmd(self):
+        self.setting_is_printing_board = False
+
+    def setting_print_fen_cmd(self):
+        self.setting_is_printing_fen = True
+
+    def setting_print_fen_no_cmd(self):
+        self.setting_is_printing_fen = False
+        
+            
+    def setting_stop_on_error_cmd(self,_=None):
+        self.setting_is_stop_on_error = True
+            
+    def setting_no_stop_on_error_cmd(self,_=None):
+        self.setting_is_stop_on_error = False
+
         
     """ 
     End of menu commands
@@ -424,7 +496,7 @@ class ChessGameDisplay(wx.Frame):
 
     def stop_looping(self):
         """ Stop looping
-        Note we do not stop the current exececution.
+        Note we do not stop the current execution.
         If the function is exceptionally long, the
         user can check the status of self.is_looping
         within the function, to effect an early exit.
@@ -530,6 +602,7 @@ class ChessGameDisplay(wx.Frame):
         :include_pieces: include board pieces in display
             default: True - show pieces
         """
+        self.Freeze()
         if title is None:
             title = self.title
         self.title = title
@@ -542,16 +615,15 @@ class ChessGameDisplay(wx.Frame):
         bd = self.get_bd()
         self.chess_pan.set_board(bd)
         self.chess_pan.Refresh()
+        self.Thaw()
         
     def get_geo_whxy(self):
         """ Obtain geometry of display window
         :returns: list of width,height,x-offset,y-offset ints in pixels
         """
-        r'''###TBD
-        geo_whxy = re.split(r'[x\+]',self.mw.geometry())
-        geo_whxy_ints = [int(vs) for vs in geo_whxy]
-        return geo_whxy_ints
-        '''
+        x,y = self.GetPosition()
+        w,h = self.GetSize()
+        return w,h,x,y
         
     def err_add(self, msg=None):
         """ Set and Count errors
@@ -576,12 +648,16 @@ class ChessGameDisplay(wx.Frame):
         """ Show error
         if scanning, then go to next file
         """
+        SlTrace.lg(f"Error {desc}")
+        self.print_fen()
+        
         self.err_add(msg=desc)
+        
         self.save_error_game(desc)
         if self.is_scanning:
-            if self.scan_is_stop_on_error:
+            if self.setting_is_stop_on_error:
                 self.scan_pause()
-                SlTrace.lg("Scanning paused because of error")
+                SlTrace.lg("Looping paused because of error")
                 return
 
             self.scan_force_next_game()
@@ -589,43 +665,6 @@ class ChessGameDisplay(wx.Frame):
 
     def change_menu_label(self, menu, index, new_label):
         menu.entryconfigure(index, label=new_label)
-
-    def printing_board_cmd(self):
-        """ Switch printing board after each move
-        """
-        pb_labels = ["print_boards", "Don't pring_boards"]
-        self.is_printing_board = not self.is_printing_board
-        printing_board_label = pb_labels[1] if self.is_printing_board else pb_labels[0]
-        self.change_menu_label(self.setting_menu, self.setting_printing_boards_idx,
-                               printing_board_label)
-
-    def printing_fen_cmd(self):
-        """ Switch printing FEN after each move
-        """
-        pf_labels = ["Print FEN", "Don't print FEN"]
-        self.is_printing_fen = not self.is_printing_fen
-        printing_fen_label = pf_labels[1] if self.is_printing_fen else pf_labels[0]
-        self.change_menu_label(self.setting_menu, self.setting_printing_fen_idx,
-                               printing_fen_label)
-
-    def scan_loop_interval_cmd(self):
-        """ Set/change loop interval
-        """
-        from gr_input import gr_input
-        
-        interval = self.loop_interval
-        new_val_str = gr_input("Loop interval(msec)", default=str(interval))
-        print(f"{new_val_str = }")
-        if new_val_str == "":
-            return
-        interval = int(new_val_str)
-        self.loop_interval = interval
-            
-    def scan_stop_on_error_cmd(self,_=None):
-        self.scan_is_stop_on_error = True
-            
-    def scan_no_stop_on_error_cmd(self,_=None):
-        self.scan_is_stop_on_error = False
 
     def get_bd(self):
         """ Get current board
@@ -648,15 +687,23 @@ class ChessGameDisplay(wx.Frame):
         """ Setup board, using FEN string,
         with optional following move sequence
         """
-        self.fen_frame =  tk.Frame(self.interactive_frame)
-        self.fen_frame.pack(side=tk.TOP) 
-        fen_label = tk.Label(self.fen_frame, text="Enter FEN")
-        fen_label.pack(side=tk.TOP)
-        self.fen_entry = tk.Entry(self.fen_frame, width=60)
-        self.fen_entry.pack(expand=tk.TRUE, fill=tk.BOTH)
-        ok_button = tk.Button(self.fen_frame, text="OK", command=self.get_fen_str)
-        self.fen_entry.bind("<Return>", self.get_fen_str)
-        ok_button.pack()
+        from gr_input import gr_input
+        
+        new_fen = gr_input("Enter FEN", default=self.prev_fen)
+        if new_fen == "":
+            return
+        bd = self.get_bd()
+        if (err := bd.fen_check(new_fen)) is not None:
+            SlTrace.lg(f"{err =} in {new_fen}")
+            return
+        
+        self.restart()  # New game
+        bd = self.get_bd()
+        bd.fen_setup(new_fen)
+        self.prev_fen = new_fen
+        self.display_board()
+            
+        
     
     def move_validate(self, spec):
         """ Move validate, returns adjusted move specification
@@ -700,40 +747,18 @@ class ChessGameDisplay(wx.Frame):
 
     move_index = 0        # move index from selection
     def goto_move_cmd(self):
-        """ Select game move and go to it
+        """ Select game move and set to pause there during 
+        next looping/scanning run
         """
-        game = self.sel_game
-        if game is None:
+        pause_no = self.going_to_move_no
+        at = "" if pause_no is None else f"[{pause_no}]"
+        new_val_str = gr_input(f"Pause at {at}:",
+                               default=str(self.going_to_move_no))
+        if new_val_str  == '-':
+            self.going_to_move_no = None
             return
         
-        move_descs = []     # Descs <#>  <white spec> OR <... black spec>
-        moves = game.moves
-        move_pairs = [(i,j) for i,j in zip(moves[::2], moves[1::2])]
-        move_descs.append("Begin")
-        move_no = 0
-        for move_pair in move_pairs:
-            move_no += 1
-            move_desc = f"{move_no}: {move_pair[0]}"
-            move_descs.append(move_desc)
-            move_desc = f"{move_no}:   ...  {move_pair[1]}"
-            move_descs.append(move_desc)    
-        input_win = tk.Toplevel(self.mw)
-        win_variable = tk.StringVar(input_win, move_descs[-1])
-        def ok_cmd():
-            global move_index
-            sel_text = win_variable.get()
-            move_index = move_descs.index(sel_text)
-            input_win.destroy()                    # cleanup
-            input_win.quit()
-            
-        g_sel = tk.OptionMenu(input_win, win_variable, *move_descs)
-        g_sel.pack()
-        ok_button = tk.Button(input_win,text="OK", command=ok_cmd)
-        ok_button.pack()
-        input_win.mainloop()                   # Loop till quit
-        self.mw.after(0, self.on_cmd,
-                      f"goto_move_idx {move_index}")
-        
+        self.going_to_move_no = int(new_val_str)
 
     
     def print_game_cmd(self):
@@ -747,15 +772,15 @@ class ChessGameDisplay(wx.Frame):
         :desc: optional description
         """
         if game is None:
-            game = self.sel_game
-        
+            game = self.sel_game        
         if desc is None:
             desc = ""
         if game is None:
             SlTrace.lg("No current game")
-        else:
-            game_str = pgn.dumps(game)
-            SlTrace.lg(f"{desc}\n{game_str}")
+            return
+        
+        game_str = pgn.dumps(game)
+        SlTrace.lg(f"{desc}\n{game_str}")
                  
     def win_size_event(self, e):
         pass
@@ -855,6 +880,8 @@ class ChessGameDisplay(wx.Frame):
         while move_index < len(pgngame.moves):
             move = pgngame.moves[move_index]
             move_index += 1
+            if move.startswith('{'):
+                continue    # ignore comments
             yield move
         
         return None
@@ -923,7 +950,19 @@ class ChessGameDisplay(wx.Frame):
                 with open(file) as game_file:
                     pgn_text = game_file.read()
                     pgn_games = pgn.loads(pgn_text) # Returns a list of PGNGame
-                    self.scan_games_iter = iter(pgn_games)
+                    start_i = 0
+                    end_i = len(pgn_games)-1
+                    if (self.setting_game_start_no > 1
+                        and self.setting_game_start_no < len(pgn_games)):
+                        start_i = self.setting_game_start_no-1
+                    if (self.setting_game_end_no is not None and
+                        self.setting_game_end_no != ""):     
+                       if (self.setting_game_end_no >= 0
+                           and self.setting_game_end_no < len(pgn_games)):
+                           end_i = self.setting_game_end_no-1
+                           pgn_games = pgn_games[self.setting_game_start_no-1:] 
+                    self.scan_ngame = start_i   # Bump before descr
+                    self.scan_games_iter = iter(pgn_games[start_i:end_i+1])
             else:
                 return game
  

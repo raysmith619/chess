@@ -189,4 +189,3 @@ class ChessboardStack:
         return self.get_move()     
 
   
-        

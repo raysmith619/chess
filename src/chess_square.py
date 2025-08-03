@@ -181,4 +181,3 @@ class ChessSquare:
         :iy: y index 
         """
         self.iy = iy
-        

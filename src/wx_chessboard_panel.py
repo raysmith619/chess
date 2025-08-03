@@ -221,7 +221,7 @@ class ChessboardPanel(CanvasPanel):
             self.display_pieces(dc, piece_squares=piece_squares)
         #self.display_items()
         self.display_pending(dc)
-        self.Show()
+        #self.Show()
         #self.clear() # Remove after display
         pass
 if __name__ == '__main__':
@@ -249,5 +249,3 @@ if __name__ == '__main__':
 
     app.MainLoop()
 
-    
-    

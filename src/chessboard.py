@@ -127,20 +127,38 @@ class Chessboard:
         self.clear_board()
         self.piece_squares = []
         return self.fen_setup('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
-                                
-    def fen_setup(self, fen_str):
-        """ Setup board piece_squares from FEN string
-        Setup board state piece placement, etc from FEN specification
-        :fen_str:  FEN notation string
-        :returns: error message text, else None for success
+    
+    def fen_check(self, fen_str):
+        """ Validate FEN string
+        :fen_str: FEN notation string
+        :returns: None if valid FEN
+                error string if bad syntax
         """
         cf = ChessFEN()
         if cf.parse(fen_str):
             self.err = cf.err
             return cf.err       # Bad syntax
+        return None
+                                        
+    def fen_setup(self, fen_str):
+        """ Setup board piece_squares from FEN string
+        Setup board state piece placement, etc from FEN specification
+        Setup board iff Successful, else no change
+        :fen_str:  FEN notation string
+        :returns: error message text, else None for success
+        """
+        if (err := self.fen_check(fen_str)) is not None:
+            return err
         
+        cf = ChessFEN()
+        if cf.parse(fen_str):
+            self.err = cf.err
+            return cf.err       # Bad syntax just in case
+        
+        self.clear_board()
+        self.piece_squares = []        
         cf.export_to_bd(self)    
-
+        return None
     """ 
     Internal board access
     Probably to be  made more efficient in the future
@@ -460,42 +478,8 @@ class Chessboard:
         :rep: maximum number of repeats in each direction
         :returns: dictionary, by sq, of moveable squares
         """
-        sqs_d = {}
-        our_color = self.piece_color(piece)
-        piece_type = self.piece_to_type(piece)
-        if rep is None:
-            rep = max(self.nsqx-1, self.nsqy-1)
-            
-        for dir in list_dirs:
-            if len(dir) < 3:
-                dir = dir[0],dir[1],"capture"
-            special_dir = dir[2]
-            sq = orig_sq
-            repadj = rep
-            if piece_type == 'p' and dir[0] == dir[1]:
-                repadj = 1  # pawn diagonals == 1
-                
-            for i in range(repadj):
-                sq = self.get_adj_sq(sq, dir)
-                if sq is None:
-                    break   # over board edge
-
-                sq_piece = self.get_piece(sq)                    
-                if sq_piece is None:
-                    if special_dir != "capture":    # only save capture
-                        sqs_d[sq] = sq_piece    # save empty square
-                    continue
-                
-                # Square is occupied
-                sq_piece_color = self.piece_color(sq_piece)
-                if special_dir == "capture":
-                    if sq_piece_color == our_color:
-                        break   # End, Not a capture situation
-                    else:
-                        sqs_d[sq] = sq_piece
-                        break       # End, capturing piece
-                    
-        return sqs_d
+        return self.cpm.get_move_dir_sqs(piece, orig_sq,
+                                         list_dirs, rep=rep)
 
     def sq_to_file_rank(self, sq, to_int=False):
         """ split sq into file, rank pair
@@ -544,7 +528,7 @@ class Chessboard:
         """ Get all side to move pieces
         :to_move: black/white
             default: get from board
-        :returns   list of piece_square settings
+        :returns:   list of piece_square settings
         """
         if to_move is None:
             to_move = self.get_to_move()
@@ -628,9 +612,9 @@ class Chessboard:
         """
         self.to_move = "black" if self.to_move == "white" else "white"
 
-    def castle_from_to(self, king_side= True, to_move=None):
+    def castle_from_to(self, kingside= True, to_move=None):
         """ give source, destination sq - worker function
-        :king_side: True - king side castle, else queen side
+        :kingside: True - king side castle, else queen side
         :to_move: white/black
                 default: get current
         :returns: (king origin sq, destination sq), rook orig, dest)
@@ -638,7 +622,7 @@ class Chessboard:
         """
         if to_move is None:
             to_move = self.get_to_move()
-        if king_side:
+        if kingside:
             if to_move == "white":
                 king_sq = "e1"
                 king_dest = "g1"
@@ -663,16 +647,16 @@ class Chessboard:
         return king_sq, king_dest, rook_sq, rook_dest
             
 
-    def can_castle(self, king_side=True, to_move=None):
+    def can_castle(self, kingside=True, to_move=None):
         """ Determine if we can castle
-        :king_side: True if king side, else queen side
+        :kingside: True if king side, else queen side
                 default: kingside                
         :returns: True if the requested castling is permited
         """
         if to_move is None:
             to_move = self.get_to_move()
         king_sq, king_dest, rook_sq, rook_dest = self.castle_from_to(
-                king_side=king_side, to_move=to_move)
+                kingside=kingside, to_move=to_move)
 
         # Check that pieces are in place
         k_piece = "K" if to_move == "white" else "k"
@@ -709,8 +693,11 @@ class Chessboard:
     def get_intervening_sqs(self, first_sq, last_sq,
                             include_first=False,
                             include_last=False):
-        """ Get squares between first and last
-        in same rank (maybe some day other paths)
+        """ Get squares between first and last square
+        Supports rank chang == 0, or file change  == 0
+            or abs(rank change) == abs(file change)
+            else returns enpty dictionary
+            
         :first_sq: beginning square
         :last_sq: last square
         :include_first: True - include first square, else omit
@@ -722,56 +709,36 @@ class Chessboard:
             first_sq, to_int=True)
         l_file_no, l_rank_no = self.sq_to_file_rank(
             last_sq, to_int=True)
-        assert f_rank_no == l_rank_no, "get_intervening_sqs separate ranks"
         file_change = l_file_no - f_file_no
-        file_dir = int(file_change/abs(file_change))
+        rank_change = l_rank_no - f_rank_no
+        if (file_change != 0 and rank_change != 0
+            and abs(file_change) != abs(rank_change)):
+            return {}
+        if file_change == 0:
+            x_per_step = 0
+        else:
+            x_per_step = int(file_change/abs(file_change))
+        if rank_change == 0:
+            y_per_step = 0
+        else:
+            y_per_step = int(rank_change/abs(rank_change))
         incl_sqs = {}
         file_no = f_file_no
         rank_no = f_rank_no
+        
         while True:
             sq = self.file_rank_to_sq(file=file_no, rank=rank_no)
             incl_sqs[sq] = sq
             if sq == last_sq:
                 break
-            file_no += file_dir
+            file_no += x_per_step
+            rank_no += y_per_step
             
         if not include_first:
             del incl_sqs[first_sq]
         if not include_last:
             del incl_sqs[last_sq]
         return incl_sqs
-
-    def get_attacking_pieces(self, ps, to_move=None):
-        """ Get dictionary of piece-squares
-        which can attack/capture given sq
-        :ps: piece-square or sq
-            if sq use to_move 
-        :to_move: side to move (our side)
-                default: the board's
-        :returns: dictionary by squares, of pieces which can attack our
-                square sq
-        """
-        if len(ps) > 2:
-            target_piece,target_sq = self.ps_to_p_sq(ps)
-            to_move = self.piece_to_move(target_piece)
-        else:
-            target_piece = None
-            target_sq = ps
-            
-        if to_move is None:
-            to_move = self.get_to_move()
-        
-        
-        att_pcs = self.att_pieces_black if to_move == "white" else self.att_pieces_white
-        att_piece_sqs = self.get_pieces(att_pcs)   
-        attacking_sqs = {}
-        for att_psq in att_piece_sqs:
-            att_piece, att_sq = self.ps_to_p_sq(att_psq)
-            att_move_to_sqs = self.get_move_to_sqs(att_piece,
-                                                   orig_sq=att_sq)
-            if target_sq in att_move_to_sqs:
-                attacking_sqs[att_sq] = att_piece
-        return attacking_sqs
 
     def is_in_check(self, piece=None):
         """ Check if king is in check
@@ -819,6 +786,8 @@ class Chessboard:
         :piece: piece uppercase for white
         :returns: piece type (lowercase)
         """
+        if piece is None:
+            piece = 'p'         # nominal
         return piece.lower()
     
     def ps_to_sq(self, ps):
@@ -901,7 +870,26 @@ class Chessboard:
         """
         fen_str = self.board_to_fen_str()
         SlTrace.lg(fen_str)
+
+    def castle_opportunity(self, to_move="white", kingside=True):
+        """ Check if the opportunity for castle is present
+        :to_move: whose move default: white
+        :kingside: True if kingside, False: queenside
+                default: kingside
+        :returns: True if opportunity is present
+        """
+        if to_move == "white":
+            if kingside:
+                return self.can_castle_white_kingside
+            
+            return self.can_castle_white_queenside
         
+        # black
+        if kingside:
+            return self.can_castle_black_kingside
+        
+        return self.can_castle_black_queenside
+                
         
     def make_move(self,
                   just_notation=False,
@@ -949,12 +937,16 @@ class Chessboard:
         if orig_sq is None and not just_notation:
             err = f"make_move: spec:{spec} orig_sq:{orig_sq}"
             SlTrace.lg(err)
+            self.print_board_to_fen()
+            SlTrace.lg("")
             return err
         
 
         if dest_sq is None and not just_notation:
             err = f"make_move: spec{spec} dest_sq:{dest_sq}"
             SlTrace.lg(err)
+            SlTrace.lg("")
+            self.print_board_to_fen()
             return err
         
         if update:
@@ -1199,6 +1191,46 @@ class Chessboard:
     Links to ChessPieceMovement via cpm
     """
 
+    def get_attacking_pieces(self, ps, to_move=None):
+        """ Get dictionary of piece-squares
+        which can attack/capture given sq
+        If the attacked piece is a king, the
+        test for the opponent's move is short-circuited
+        with no test for opponent left in check.
+        :ps: piece-square or sq
+            if sq use to_move 
+        :to_move: side to move (our side)
+                default: the board's
+        :returns: dictionary by squares, of pieces which can attack our
+                square sq
+        """
+        if len(ps) > 2:
+            target_piece,target_sq = self.ps_to_p_sq(ps)
+            to_move = self.piece_to_move(target_piece)
+        else:
+            target_piece = None
+            target_sq = ps
+            
+        if to_move is None:
+            to_move = self.get_to_move()
+        
+        target_piece_type = self.piece_to_type(target_piece)
+        att_pcs = self.att_pieces_black if to_move == "white" else self.att_pieces_white
+        att_piece_sqs = self.get_pieces(att_pcs)   
+        attacking_psq = {}
+        
+        # If target is king, attackers need not worry about
+        # going into check
+        ck_for_check = False if target_piece_type=='k' else True
+        for att_psq in att_piece_sqs:
+            att_piece, att_sq = self.ps_to_p_sq(att_psq)
+            att_move_to_sqs = self.get_move_to_sqs(att_piece,
+                                        orig_sq=att_sq,
+                                        ck_for_check=ck_for_check)
+            if target_sq in att_move_to_sqs:
+                attacking_psq[att_sq] = att_piece 
+        return attacking_psq
+
 
     def is_at_origin(self, piece, sq):
         """ Check if pawn at origin sq
@@ -1208,7 +1240,8 @@ class Chessboard:
         """
         return self.cpm.is_at_origin(piece=piece, sq=sq)
 
-    def get_move_to_sqs(self, piece, orig_sq=None):
+    def get_move_to_sqs(self, piece, orig_sq=None,
+                        ck_for_check=True):
         """ Get list of squares this piece can legaly move to
         including capture and promotion, based on board contents
         One can use various functions to setup position:
@@ -1224,81 +1257,15 @@ class Chessboard:
         :piece: piece
         :orig_sq: origin square
         :prev_move: previous move (ChessSaveUnit)
-            default: get from board 
+            default: get from board
+        :ck_for_check: True - discard moves which would
+                        leave our king in check 
         :returns: dictionary of candidate destination squares
                 Empty if none
                 None if error
         """
         return self.cpm.get_move_to_sqs(piece, orig_sq=orig_sq)            
 
-
-    def get_castle_move_to_sqs(self, piece, orig_sq):
-        """ Determine which, if any squares the king can move to 
-        by castling (kingside, queenside), we assume it is the king's
-        turn to move.
-             Requirements
-               * neither king nor rook have moved
-               * no interveining pieces
-               * king must not move from,through or to check
-        :piece: k for black king, K for white king
-        :orig_sq: orign square for king
-        :returns: dictionary of destination squares, empty if none
-        """
-        move_to_sqs = {}
-        to_move = self.piece_to_move(piece)
-        if self.can_castle(king_side=True):
-            kside = self.castle_from_to(to_move=to_move)
-            king_sq, king_dest, rook_sq, rook_dest = kside
-            move_to_sqs[king_dest] = None
-        if self.can_castle(king_side=False):
-            qside = self.castle_from_to(king_side=False, to_move=to_move)
-            king_sq, king_dest, rook_sq, rook_dest = qside
-            move_to_sqs[king_dest] = None
-        return move_to_sqs
-
-    def get_move_to_sqs(self, piece, orig_sq=None):
-        """ Get list of squares this piece can legaly move to
-        including capture and promotion, based on board contents
-        One can use various functions to setup position:
-            self.clear_board() - clears board to empty
-            self.place_piece() - to setup additional pieces
-                    Note orig_sq implies piece, sq without actually
-                    populating the square
-            self.save_move(ChessSaveUnit) sets previous move 
-                e.g. self.save_move(ChessSaveUnit(self,
-                            orig_ps="pe7", dest_ps="pe5"))
-                        is a 2-square black pawn move which could
-                        be taken enpasant by a white pawn on d4
-        :piece: piece
-        :orig_sq: origin square
-        :prev_move: previous move (ChessSaveUnit)
-            default: get from board 
-        :returns: dictionary of candidate destination squares
-                Empty if none
-                None if error
-        """
-        piece_type = piece.lower()
-        if piece_type not in ChessPieceMovement.piece_type_dir_d:
-            self.err = f"get_move_to_sqs {piece}"
-            return None
-        
-        if piece == 'p':
-            dir_type = 'p-black'    # reverse y direction
-        else:
-            dir_type = piece_type
-        dirs = ChessPieceMovement.piece_type_dir_d[dir_type]
-        if piece_type == 'p':
-            if self.is_at_origin(piece, orig_sq):
-                rep = 2
-            else:
-                rep = 1
-        elif piece_type in ['k', 'n']:
-            rep = 1
-        else:
-            rep = None  # Use default - max
-        return self.get_move_dir_sqs(piece, orig_sq=orig_sq,
-                                     list_dirs=dirs,
-                                     rep=rep)
 
         
 if __name__ == "__main__":
@@ -1313,4 +1280,3 @@ if __name__ == "__main__":
     cb = Chessboard(pieces=':Kc1Qe1kh7 w')
     cbd = ChessboardPrint(cb)
     cbd.display_board()
-    

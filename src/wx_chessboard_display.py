@@ -100,7 +100,7 @@ class ChessboardDisplay(wx.Frame):
         self.squares_bounds = []         # square bounds array [ic][ir]
         border_size = self.sq_size//2
         x_left = border_size    ### - self.sq_size//2
-        y_top = border_size     ### - self.sq_size//2        
+        y_top = border_size  -   self.sq_size//2        
         y_bot = y_top + self.nsqy*self.sq_size   # y increases downward
         bd_width = int(self.nsqx*self.sq_size+2*border_size)
         bd_height = int(self.nsqy*self.sq_size+2*border_size+2*border_size)
@@ -139,7 +139,7 @@ class ChessboardDisplay(wx.Frame):
             self.squares_bounds.append(sb_col)   # Add next column to right
         piece_squares = self.get_pieces()
         if piece_squares:
-            self.chess_pan.clear(refresh=True) # Remove after display
+            #self.chess_pan.clear(refresh=True) # Remove after display
             self.display_pieces(dc, piece_squares=piece_squares)
 
     def get_pieces(self):
@@ -239,5 +239,3 @@ if __name__ == '__main__':
         cbd.Show()
         pass
     app.MainLoop()
-    
-    

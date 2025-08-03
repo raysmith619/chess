@@ -1620,32 +1620,53 @@ class CgdFrontEnd:
         """ Help - list command (Alt-s) commands
         """
         self.menus.scan_help_cmd()  # *** Placed in menus
-        
-    def scan_print_bd_cmd(self,_=None):
-        self.adw.scan_print_bd_cmd()
-        
-    def scan_print_bd_no_cmd(self,_=None):
-        self.adw.scan_print_bd_no_cmd()
-        
-    def scan_print_fen_cmd(self,_=None):
-        self.adw.scan_print_fen_cmd()
-            
-    def scan_print_fen_no_cmd(self,_=None):
-        self.adw.scan_print_fen_no_cmd()
-            
-    def scan_loop_interval_cmd(self,_=None):
-        self.adw.scan_loop_interval_cmd()
-            
-    def scan_stop_on_error_cmd(self,_=None):
-        self.adw.scan_stop_on_error_cmd()
-            
-    def scan_no_stop_on_error_cmd(self,_=None):
-        self.adw.scan_no_stop_on_error_cmd()
 
+    def setting_game_start_cmd(self, _=None):
+        self.adw.setting_game_start_cmd()
 
+    def setting_game_end_cmd(self, _=None):
+        self.adw.setting_game_end_cmd()
+
+        
     """ Settings """
+    def setting_print_bd_cmd(self,_=None):
+        self.adw.setting_print_bd_cmd()
+        
+    def setting_print_bd_no_cmd(self,_=None):
+        self.adw.setting_print_bd_no_cmd()
+        
+    def setting_print_fen_cmd(self,_=None):
+        self.adw.setting_print_fen_cmd()
+            
+    def setting_print_fen_no_cmd(self,_=None):
+        self.adw.setting_print_fen_no_cmd()
+            
+    def setting_move_display_cmd(self,_=None):
+        self.adw.setting_move_display_cmd()
+       
+    def setting_move_display_no_cmd(self,_=None):
+        self.adw.setting_move_display_no_cmd()
+            
+    def setting_final_position_display_cmd(self,_=None):
+        self.adw.setting_final_position_display_cmd()
+            
+    def setting_final_position_display_no_cmd(self,_=None):
+        self.adw.setting_final_position_display_no_cmd()
+
+            
+    def setting_loop_interval_cmd(self,_=None):
+        self.adw.setting_loop_interval_cmd()
+            
+    def setting_stop_on_error_cmd(self,_=None):
+        self.adw.setting_stop_on_error_cmd()
+            
+    def setting_no_stop_on_error_cmd(self,_=None):
+        self.adw.setting_no_stop_on_error_cmd()
+
+
     def settings_help_cmd(self,_=None):
         self.adw.settings_help_cmd()
+
 
     """
     Game
@@ -2095,4 +2116,3 @@ if __name__ == '__main__':
     fte.do_key_str("c;g")
     
     app.MainLoop()
-    

@@ -85,4 +85,3 @@ if __name__ == '__main__':
     for i in range(data_limit):
         data = game_data.GetItem(i)
         SlTrace.lg(f"{ data =}")
-    

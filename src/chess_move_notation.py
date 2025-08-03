@@ -1,5 +1,6 @@
 #chess_move_notation.py 19Feb2025   crs from chess_move.py
 #                                   crs add 1/2-/1/2, and solo game result move
+#                                   crs add * ending ck
 r""" 
 Parse chess move notation, saving move information
 for further analysis, execution
@@ -63,7 +64,7 @@ class ChessMoveNotation:
             ret += f" {self.err}\n    "
         if self.is_castle:
             ret += f" castle"
-            if self.is_castle_queen_side:            
+            if self.is_castle_queenside:            
                 ret += f" queen side"
             else:
                 ret += f" king side"
@@ -96,12 +97,12 @@ class ChessMoveNotation:
         """
         board = self.cm.board
     
-        if self.is_castle_king_side:
-            if not self.can_castle(king_side=True):
+        if self.is_castle_kingside:
+            if not self.can_castle(kingside=True):
                 return self.err_add(f"Can't castle king side")
             
-        if self.is_castle_queen_side:
-            if not self.can_castle(king_side=False):
+        if self.is_castle_queenside:
+            if not self.can_castle(kingside=False):
                 return self.err_add(f"Can't castle queen side")
                             
         if self.piece is not None:
@@ -137,6 +138,7 @@ class ChessMoveNotation:
         # Change if/when appropriate
         self.err = None         # Error msg, None == no error
         self.spec = spec        # move specification
+        self.spec_base = spec   # with check,mate removed
         self.has_movement=True  # except for game_result  only
         self.game_result = None # set with game result
         self.is_check = False   # True if check
@@ -154,13 +156,13 @@ class ChessMoveNotation:
         self.dest2_sq = None    # optional destination square
         self.dest2_sq_mod = None
         self.is_castle = False  # True - is castle
-        self.is_castle_king_side = False  # castle kingside
-        self.is_castle_queen_side = False # castle queenside
+        self.is_castle_kingside = False  # castle kingside
+        self.is_castle_queenside = False # castle queenside
         self.en_passant_sq = None           # Set to sq if executed
         self.promoted_piece = None          # Promoted piece, if any = use self.dest_sq_mod
         spec_rem = spec     # remaining, adjusted as parts are decoded
         # Check if game result
-        if (match_res := re.match(r'(.*)\s*(([0-1]-[0-1])|(1/2-1/2))\s*$', spec_rem)):
+        if (match_res := re.match(r'(.*)\s*(([0-1]-[0-1])|(1/2-1/2)|\*)\s*$', spec_rem)):
             mr_list = list(match_res.groups())
             spec_rem = mr_list[0]
             self.game_result = mr_list[1]
@@ -175,15 +177,15 @@ class ChessMoveNotation:
                 self.is_check = True
             else:
                 self.is_check_mate = True    
-
+            self.spec_base = spec_base = spec_rem   # less check,mate
         # Check if castle
         if (match_castle := re.match(r'(O-O|O-O-O)$', spec_rem)):
             self.is_castle = True
             group1 = match_castle.group(1)
             if  group1 == 'O-O-O':
-                self.is_castle_queen_side = True
+                self.is_castle_queenside = True
             else:
-                self.is_castle_king_side = True
+                self.is_castle_kingside = True
             return None     # Done part checking
         
         # Check if promotion
@@ -328,18 +330,9 @@ class ChessMoveNotation:
             default: ChessMove to_move, else current board.to_move 
         :returns: None if OK, else error message           
         """
-        spec = self.spec
-        if spec == "O-O":
-            self.is_castle_king_side = True
-        elif spec == "O-O-O":
-            self.is_castle_queen_side =True
-        else:
-            self.err = "Unrecognized castle {spec}"
-            return self.err
-        
         to_move = self.get_to_move()
         
-        if self.is_castle_king_side:
+        if self.is_castle_kingside:
             if not(err := self.can_castle()):
                 return err
             
@@ -435,13 +428,13 @@ class ChessMoveNotation:
     Links to ChessMove
     """
 
-    def can_castle(self, king_side=True, to_move=None):
+    def can_castle(self, kingside=True, to_move=None):
         """ Determine if we can castle
-        :king_side: True if king side, else queen side
+        :kingside: True if king side, else queen side
                 default: kingside                
         :returns: True if the requested castling is permited
         """
-        return self.cm.can_castle(king_side=king_side, to_move=to_move)
+        return self.cm.can_castle(kingside=kingside, to_move=to_move)
 
     def get_orig_sq(self, piece, piece_choice=None,
                     dest_sq=None):

@@ -26,9 +26,9 @@ class ChessMove:
         ret += f" {self.piece}"       # piece e.g, K == white king
         if self.err:
             ret += f" {self.err}\n    "
-        if self.is_castle_king_side:
+        if self.is_castle_kingside:
             ret += f" castle_king"
-        if self.is_castle_queen_side:
+        if self.is_castle_queenside:
             ret += f" castle_queen"
         if self.is_capture:
             ret += " is_capture:{self.is_capture}"
@@ -65,8 +65,8 @@ class ChessMove:
         self.dest2_sq = None    # optional destination square
         self.dest2_sq_mod = None
         self.is_castle = False  # True - is castle
-        self.is_castle_king_side = False  # castle kingside
-        self.is_castle_queen_side = False # castle queenside
+        self.is_castle_kingside = False  # castle kingside
+        self.is_castle_queenside = False # castle queenside
         self.update = None
         
     def decode(self, spec):
@@ -74,6 +74,7 @@ class ChessMove:
         execution.  Results are updated for successful parse
         :spec: move specification
         """
+        self.cpm.spec = spec    # To facilitate debugging
         
         self.setup()    # Setup default settings
         # In the future we may access some of these to
@@ -92,7 +93,8 @@ class ChessMove:
             return self.cmn.err         # return completed
         
         self.cmn.make_move_update()     # Update parse results
-        
+        return self.err
+    
     def get_start_piece(self, start_str, to_move=None):
         """ Determine starting piece, given spec string
         :start_str: beginning of specification less destination
@@ -334,7 +336,8 @@ class ChessMove:
     """
     Links to cpm (ChessPieceMove) functions
     """
-    def get_move_to_sqs(self, piece, orig_sq=None):
+    def get_move_to_sqs(self, piece, orig_sq=None,
+                        ck_for_check=True):
         """ Get list of squares this piece can legaly move to
         including capture and promotion, based on board contents
         One can use various functions to setup position:
@@ -351,6 +354,8 @@ class ChessMove:
         :orig_sq: origin square
         :prev_move: previous move (ChessSaveUnit)
             default: get from board 
+        :ck_for_check: discard destination squares if
+                        move would be prohibited by check
         :returns: dictionary of candidate destination squares
                 Empty if none
                 None if error
@@ -402,13 +407,13 @@ class ChessMove:
     Links to board functions
     """
 
-    def can_castle(self, king_side=True, to_move=None):
+    def can_castle(self, kingside=True, to_move=None):
         """ Determine if we can castle
-        :king_side: True if king side, else queen side
+        :kingside: True if king side, else queen side
                 default: kingside                
         :returns: True if the requested castling is permited
         """
-        return self.board.can_castle(king_side=king_side, to_move=to_move)
+        return self.board.can_castle(kingside=kingside, to_move=to_move)
 
     def file_rank_to_sq(self, file=None, rank=None):
         """ Convert rank, file to sq notation

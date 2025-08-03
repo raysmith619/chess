@@ -84,6 +84,9 @@ update_as_loaded = True     # Display board change as game loaded
 quit_on_fail = True         # Quit on first fail    
 scan_max_loops = 1          # Limit scanning loops
 
+width = int(80*8+80*1.3)
+height = int(80*8+80*2.5)
+frame = wx.Frame(None, size=wx.Size(width,height)) 
 
 
 parser = argparse.ArgumentParser()
@@ -135,7 +138,8 @@ def setup_display(game):
     cbs.push_bd(cb)
     cb.standard_setup()         # Starting position
     cbd = ChessGameDisplay(cbs, title="Begin Game",
-                           speaker_control=speaker_control)
+                        win_width=width, win_height=height,
+                        speaker_control=speaker_control)
     if cbd.is_display_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
@@ -167,16 +171,21 @@ def get_move_desc():
     return cbs.get_move_desc()
 
 game_desc = None    # Game description if one
-def display_board(desc=None, new_display=False):
+def display_board(desc=None, new_display=False,
+                  move_type=None):
     """ Display current board state
     :desc: description
         default: generate description
     :new_display: True - new independent display window created
         default: False - update current display window
+    :move_type: END_GAME, END_SCAN, None
     """
     global cbs, cbd, cbp
     global move_interval    # msec between move change
-    
+
+    # If we want to force display and print
+    xdisp = (cbd.setting_is_final_position_display
+             and move_type == cbd.END_GAME)
     if desc is None:
         desc = get_move_desc()
     display_options = "visual_s"
@@ -194,11 +203,11 @@ def display_board(desc=None, new_display=False):
     if cbd.scan_nfile > 0:
         file_desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
     desc = file_desc + f"{desc:<15}"  + gdesc
-    if cbd.is_printing_board:
+    if xdisp or cbd.setting_is_printing_board:
         SlTrace.lg("\n"
                    +desc+
                    "\n"+bd_str, replace_non_ascii=None)
-    if cbd.is_printing_fen:
+    if cbd.setting_is_printing_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     if new_display:
@@ -206,7 +215,8 @@ def display_board(desc=None, new_display=False):
         cb = cbs.get_bd()
         cbd = ChessGameDisplay(cbs,
                            speaker_control=speaker_control)
-    cbd.display_board(title=desc)    # Use current state
+    if xdisp or cbd.setting_is_move_display:
+        cbd.display_board(title=desc)    # Use current state
     move_interval = cbd.loop_interval
     #cbd.update()
 
@@ -236,6 +246,7 @@ def error_show(desc=None):
     :desc: description
     """
     cbd.error_show(desc=desc)
+    display_board(move_type=cbd.END_GAME)
     if cbd.is_looping:
         stop_loop()
         
@@ -254,8 +265,8 @@ def do_move(cm_or_spec=None):
         if cb is None:
             cb = Chessboard()
         cb = cbs.push_bd(cb)
-        cm = ChessMove(cb, spec=cm_or_spec)        
-        SlTrace.lg(f"{cm}")
+        cm = ChessMove(cb, spec=cm_or_spec)
+        SlTrace.lg(f"{cm}", "move_trace")
         cb.cm = cm
         if (decode_ret:=cm.decode(cm_or_spec)):
             err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
@@ -264,12 +275,21 @@ def do_move(cm_or_spec=None):
             error_show(desc=f"{err_prefix} {decode_ret = } spec error:{cm.err}")
             return None
         
-        cm.make_move()
     else:
         cm = cm_or_spec
     if cm is not None and cm.game_result is not None:
         display_board()
         return None
+    
+    if cbd.going_to_move_no == cm.move_no:
+        SlTrace.lg(f"going_to {cm.move_no =}")        
+        SlTrace.lg(f"{cm}")
+        if cbd.is_scanning:
+            cbd.scan_pause()
+        else:
+            cbd.stop_looping()
+        SlTrace.lg("Ready to make move")
+    cm.make_move()
     return cm
         
 def do_move_spec(spec):
@@ -361,10 +381,19 @@ def scan_move(move):
     
     elif move == cbd.END_GAME:
         SlTrace.lg("Game end")
+        if cbd.setting_is_final_position_display:
+            display_board(move_type=cbd.END_GAME)
+        return
+    
+    elif move == '*':
+        SlTrace.lg("Undecided end '*'")
+        if cbd.setting_is_final_position_display:
+            display_board()
         return
     
     elif move == cbd.END_SCAN:
         SlTrace.lg("End of scanning")
+        cbd.stop_looping()
         return
         
     if do_move(move) is None:
@@ -372,7 +401,8 @@ def scan_move(move):
         return
     
     desc = get_move_desc()
-    display_board(desc=desc)
+    if cbd.setting_is_move_display:
+        display_board(desc=desc)
     return
                
 
@@ -410,13 +440,14 @@ def get_file_games(cmd, *args, **kwargs):
     game = selection[-1]
     if game is None:
         return          # None to have
+    
     short_desc = (f"{game.white} vs. {game.black}"
                 f" {game.event} {game.date}")
     
     stop_loop()     # Stop action incase going
     restart_game()
     game_desc = short_desc
-    setup_board(game.moves)
+    setup_board(game)
 
 def goto_move_idx(input):
     """ Go to move *set display)
@@ -506,6 +537,7 @@ def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
     cbs = cbd.cbs         
     cm = None
     # Process commands
+    SlTrace.lg(f"{cmd =} {args =}", "cmd_trace")
     if cmd == "game file":
        return get_file_games(cmd, *args, **kwargs)
     

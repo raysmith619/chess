@@ -132,4 +132,3 @@ if __name__ == '__main__':
         canvas2.create_image(im_x, im_y, anchor=tk.CENTER, image=image)
     root.update()
     
-    root.mainloop()

@@ -106,23 +106,31 @@ class CgdMenus:
                 ],
             "scanning" :
                 [
-                {"name" : "Help", "cmd" : fte.scan_help_cmd},
-                {"name" : "Files", "cmd" : fte.cmd_scanning_files},
+                {"name" : "Help",    "cmd" : fte.scan_help_cmd},
+                {"name" : "Files",   "cmd" : fte.cmd_scanning_files},
+                {"name" : "Game &S", "cmd" : fte.setting_game_start_cmd},
+                {"name" : "Game &E", "cmd" : fte.setting_game_end_cmd},
                 ],
             "settings" :
                 [
                 #         list - only using second - heading
                 {"name" : ("help","Help"), "cmd" : fte.settings_help_cmd},
-                {"name" : ("hd","&Boards Print"), "cmd" : fte.scan_print_bd_cmd},
-                {"name" : ("hd","Boards &No Print"), "cmd" : fte.scan_print_bd_no_cmd},
+                {"name" : ("hd","&Boards Print"), "cmd" : fte.setting_print_bd_cmd},
+                {"name" : ("hd","B&oards No Print"), "cmd" : fte.setting_print_bd_no_cmd},
 
-                {"name" : ("hd","&FEN Print"), "cmd" : fte.scan_print_fen_cmd},
-                {"name" : ("hd","FEN N&o Print"), "cmd" : fte.scan_print_fen_no_cmd},
+                {"name" : ("hd","&Move Display"), "cmd" : fte.setting_move_display_cmd},
+                {"name" : ("hd","Mo&ve &No Display"), "cmd" : fte.setting_move_display_no_cmd},
+
+                {"name" : ("hd","&Final Position Display"), "cmd" : fte.setting_final_position_display_cmd},
+                {"name" : ("hd","F&inal Position No Display"), "cmd" : fte.setting_final_position_display_no_cmd},
+
+                {"name" : ("hd","F&EN Print"), "cmd" : fte.setting_print_fen_cmd},
+                {"name" : ("hd","FEN No &Print"), "cmd" : fte.setting_print_fen_no_cmd},
                 
-                {"name" : ("hd","&Loop Interval"), "cmd" : fte.scan_loop_interval_cmd},
+                {"name" : ("hd","&Loop Interval"), "cmd" : fte.setting_loop_interval_cmd},
             
-                {"name" : ("hd","&Stop on error"), "cmd" : fte.scan_stop_on_error_cmd},
-                {"name" : ("hd","NO S&top on error"), "cmd" : fte.scan_no_stop_on_error_cmd},
+                {"name" : ("hd","&Stop on error"), "cmd" : fte.setting_stop_on_error_cmd},
+                {"name" : ("hd","NO S&top on error"), "cmd" : fte.setting_no_stop_on_error_cmd},
                ],
             "game" :
                 [
@@ -410,4 +418,3 @@ if __name__ == "__main__":
             
         
         
-    app.MainLoop()

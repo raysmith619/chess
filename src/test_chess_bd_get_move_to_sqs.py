@@ -50,9 +50,27 @@ cm.assert_pieces("Ke1,Rh1, rd4")
 
 cm.do_test(desc="Check for passing over check")
 cm.clear_board()
-cm.place_pieces("Ke1,Rh1, rd4,rg3")
+cm.place_pieces("Ke1,Rh1, rd4,rf3")
 Ke1rd4rg3 = cm.get_move_to_sqs('K', orig_sq=e1)
-cm.assert_sqs(Ke1rd4rg3, (e2,f1,f2))
+cm.assert_sqs(Ke1rd4rg3, e2)
+
+cm.do_test(desc="Check castle queenside ending in check")
+cm.clear_board()
+cm.place_pieces("Ke1,Ra1, rc5")
+Ke1Ra1rc5 = cm.get_move_to_sqs('K', orig_sq=e1)
+cm.assert_sqs(Ke1Ra1rc5, (d1,d2,e2,f1,f2))
+
+cm.do_test(desc="Check castle king passing through check")
+cm.clear_board()
+cm.place_pieces("Ke1,Ra1, rd3")
+Ke1Ra1rc5 = cm.get_move_to_sqs('K', orig_sq=e1)
+cm.assert_sqs(Ke1Ra1rc5, (e2,f1,f2))
+
+cm.do_test(desc="Check castle king starting in check")
+cm.clear_board()
+cm.place_pieces("Ke1,Ra1, re3")
+Ke1Ra1rc5 = cm.get_move_to_sqs('K', orig_sq=e1)
+cm.assert_sqs(Ke1Ra1rc5, (d1,d2,f1,f2))
 
 cm.do_test(desc="Simple test on blank board, with bishop in a1 corner")
 cm.clear_board()
@@ -127,12 +145,6 @@ ra1 = cm.get_move_to_sqs('r', 'a1')
 cm.assert_sqs(sqs=ra1, sq_only="a2 b1 c1")
 
 
-
-cm.do_test(desc="Check P in e2")
-cm.clear_board()
-P_e2 = cm.get_move_to_sqs('P', 'e2')
-cm.assert_sqs(sqs=P_e2, sq_only="e3 e4")
-
 cm.do_test(desc2="    add p d3 P f3")
 cm.place_piece('p', 'd3')
 cm.place_piece('P', 'f3')
@@ -149,45 +161,65 @@ cm.place_piece('p', 'e4')
 P_e2_y = cm.get_move_to_sqs('P', 'e2')
 cm.assert_sqs(sqs=P_e2_y, sq_only="e3 d3")
 
+cm.do_test(desc="Check P in g2")
+cm.clear_board()
+cm.place_pieces("Pg2")
+P_g2 = cm.get_move_to_sqs('P', 'g2')
+cm.assert_sqs(sqs=P_g2, sq_only="g3 g4")
+
+
+cm.do_test(desc="Check P in g2,h2")
+cm.clear_board()
+cm.place_pieces("Pg2,Ph2")
+P_e2 = cm.get_move_to_sqs('P', 'g2')
+cm.assert_sqs(sqs=P_e2, sq_only="g3 g4")
+
+cm.do_test(desc="Check P in g2  p in f3 h3")
+cm.clear_board()
+cm.place_pieces("Pg2,Ph2, pf3, ph3")
+P_e2 = cm.get_move_to_sqs('P', 'g2')
+cm.assert_sqs(sqs=P_e2, sq_only="f3 g3 g4 h3")
+
+
 cm.do_test(desc="Check N in a1")
 cm.clear_board()
-N_a1 = cm.get_move_to_sqs('N', 'a1')
+N_a1 = cm.get_move_to_sqs('N', 'a1', add_piece=True)
 cm.assert_sqs(sqs=N_a1, sq_only="b3 c2")
 
 cm.do_test(desc2="    add pb3 Pc2")
 cm.place_piece('p', 'b3')
 cm.place_piece('P', 'c2')
-P_e2_x = cm.get_move_to_sqs('N', 'a1')
+P_e2_x = cm.get_move_to_sqs('N', 'a1', add_piece=True)
 cm.assert_sqs(sqs=P_e2_x, sq_only="b3")
 
 cm.do_test(desc="Check N in c3")
 cm.clear_board()
-N_c3 = cm.get_move_to_sqs('N', 'c3')
+N_c3 = cm.get_move_to_sqs('N', 'c3', add_piece=True)
 cm.assert_sqs(sqs=N_c3, sq_only="a2 a4 b5 d5 e4 e2 d1 b1")
 
 cm.do_test(desc="Check N in d4")
 cm.clear_board()
-N_d4 = cm.get_move_to_sqs('N', 'd4')
+N_d4 = cm.get_move_to_sqs('N', 'd4', add_piece=True)
 cm.assert_sqs(sqs=N_d4, sq_only="c6 e6 f5 f3 e2 c2 b3 b5")
 
 cm.do_test(desc="Check N in e5")
 cm.clear_board()
-N_e5 = cm.get_move_to_sqs('N', 'e5')
+N_e5 = cm.get_move_to_sqs('N', 'e5', add_piece=True)
 cm.assert_sqs(sqs=N_e5, sq_only="f7 g6 g4 f3 d3 c4 c6 d7")
 
 cm.do_test(desc="Check N in f6")
 cm.clear_board()
-N_f6 = cm.get_move_to_sqs('N', 'f6')
+N_f6 = cm.get_move_to_sqs('N', 'f6', add_piece=True)
 cm.assert_sqs(sqs=N_f6, sq_only="g8 h7 h5 g4 e4 d5 d7 e8")
 
 cm.do_test(desc="Check N in g7")
 cm.clear_board()
-N_g7 = cm.get_move_to_sqs('N', 'g7')
+N_g7 = cm.get_move_to_sqs('N', 'g7', add_piece=True)
 cm.assert_sqs(sqs=N_g7, sq_only="h5 f5 e6 e8")
 
 cm.do_test(desc="Check N in h8")
 cm.clear_board()
-N_h8 = cm.get_move_to_sqs('N', 'h8')
+N_h8 = cm.get_move_to_sqs('N', 'h8', add_piece=True)
 cm.assert_sqs(sqs=N_h8, sq_only="g6 f7")
 
 
@@ -208,4 +240,3 @@ if assert_fail_count > 0:
 else:
     SlTrace.lg("NO FAILS")
 
-SlTrace.lg()
