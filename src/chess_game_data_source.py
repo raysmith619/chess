@@ -3,7 +3,7 @@ import wx
 
 import pgn
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 class ChessGameDataSource:
     """

@@ -4,7 +4,7 @@ Facilitate repetitive input action
 
 """
 import tkinter as tk       # Get all tkinter via tk.
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 class InputGather:
     def __init__(self, call_with_input,

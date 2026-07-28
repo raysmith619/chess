@@ -1,7 +1,7 @@
 #chessboard_print.py 10Feb2025  crs
 import re
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 class ChessboardPrint:
     def __init__(self,

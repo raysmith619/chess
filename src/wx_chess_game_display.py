@@ -18,16 +18,16 @@ import wx
 import pgn
 
 from gr_input import gr_input        
-from wx_speaker_control import SpeakerControlLocal
+from graphics_braille.wx_speaker_control import SpeakerControlLocal
 
 from chessboard import Chessboard
 from wx_chessboard_panel import ChessboardPanel
-from wx_grid_path import GridPath
+from graphics_braille.wx_grid_path import GridPath
 
 from wx_cgd_menus import CgdMenus
 from chess_square import ChessSquare
-from select_trace import SlTrace
-from select_trace import TraceError
+from graphics_braille.select_trace import SlTrace
+from graphics_braille.select_trace import TraceError
 
 from wx_cgd_front_end import CgdFrontEnd
 from wx_chess_piece_images import ChessPieceImages
@@ -37,7 +37,8 @@ from chessboard_stack import ChessboardStack
 from chess_error import ChessError
 from chess_game_data_source import ChessGameDataSource
 from wx_selection_ok import SelectionOK
-
+from wx_chess_settings_frame import ChessSettingsFrame
+from chess_settings_server import ChessSettingsServer
 
 class ChessGameDisplay(wx.Frame):
     base_display_id = 0         # Unique display id: 1...
@@ -111,6 +112,7 @@ class ChessGameDisplay(wx.Frame):
         self.on_cmd = None
         self.err_count = 0
         self.prev_fen = None    # last entered
+        self._is_end_game = False   # Set when end of game condition arrises
         self.is_display_fen = True  # True - display FEN
         self.is_looping = False
         self.is_scanning = False
@@ -120,7 +122,8 @@ class ChessGameDisplay(wx.Frame):
         self.setting_is_stop_on_error = True  # stop on error
         self.scan_max_loops = 1
         self.scan_nfile = 0
-        self.scan_ngame = 0
+        self.scan_ngame = 0     # games scanned in file
+        self.scan_ngame_total = 0   # total games scanned
         self.sel_short_desc = None
         self.sel_game = None
         self.setting_game_start_no = 1
@@ -129,7 +132,14 @@ class ChessGameDisplay(wx.Frame):
         self.setting_is_final_position_display = True
         self.setting_is_printing_board = True
         self.setting_is_printing_fen = True
+        self.settings_is_fastest_run = False
+        self.settings_is_shortest_move = False
+        self.old_setting_is_move_display = False
+        self.old_setting_is_printing_board = False
+        self.old_setting_is_printing_fen = False
+        self.old_loop_interval = 250
         self.loop_interval = 250    # msec loop interval
+        self.end_game_interval = 250    # msec end game interval
         self.cbs = cbs
         if app is None:
             app = wx.App()
@@ -230,6 +240,8 @@ class ChessGameDisplay(wx.Frame):
         self.fte = CgdFrontEnd(self, title=title, silent=silent, color=color)
         self.menus = self.fte.menus # Menus setup by fte
         self.chess_pan.set_key_press_proc(self.fte.key_press)
+
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_press, id=wx.ID_ANY)
         
 
         self.escape_pressed = False # True -> interrupt/flush
@@ -317,6 +329,52 @@ class ChessGameDisplay(wx.Frame):
         self.scan_loops = 0         # Keep count
         self.scan_files_start()
 
+    def settings_window_cmd(self,_=None):
+        SlTrace.lg("adw.settings_window_cmd")
+        self.settings_win = ChessSettingsFrame(self)
+        self.settings_win.Show()
+
+
+    """    
+    Settings with explicit get/set functions
+    "Use Shortest Move Interval" :
+    """
+    
+    def get_shortest_move(self):
+        return self.settings_is_shortest_move
+    
+    def set_shortest_move(self, value=True):
+        self.settings_is_shortest_move = value
+        self.setting_move_interval = 2
+        
+    def get_fastest_run(self):
+        return self.settings_is_fastest_run
+
+    def set_fastest_run(self, value=True):
+        self.settings_use_fastest_run = value
+        if not hasattr(self, "settings_win"):
+            return value
+        
+        sw = self.settings_win
+        sw.save_vals()
+        if value:
+            self.old_setting_is_move_display = self.setting_is_move_display
+            self.old_setting_is_printing_board = self.setting_is_printing_board
+            self.old_setting_is_printing_fen = self.setting_is_printing_fen
+            self.old_loop_interval = self.loop_interval
+            sw.set_val(name="Display_Move", value=False)        
+            sw.set_val(name="Print_Board", value=False)        
+            sw.set_val(name="Print_FEN", value=False)        
+            sw.set_val(name="Move_Interval", value=1)        
+
+        else:
+            sw.set_val(name="Display_Move", value=self.old_setting_is_move_display)
+            sw.set_val(name="Print_Board", value=self.old_setting_is_printing_board)
+            sw.set_val(name="Print_FEN", value=self.old_setting_is_printing_fen)
+            sw.set_val(name="Move_Interval", value=self.old_loop_interval)
+                
+        return self.settings_use_fastest_run
+        
 
     def setting_game_start_cmd(self):
         from gr_input import gr_input        
@@ -552,7 +610,8 @@ class ChessGameDisplay(wx.Frame):
     """
     def on_key_press(self, event):
         keysym = event.keysym
-        self.display_dispatch(input=keysym)
+        SlTrace.lg(f"on_key_press:{keysym=}")
+        self.display_dispatch(cmd=keysym, input=keysym)
 
 
     # Display Command Dispatch
@@ -564,6 +623,7 @@ class ChessGameDisplay(wx.Frame):
         :kwargs: keyword args
         """
         if self.on_cmd is not None:
+            SlTrace.lg(f"on_cmd({cmd=}, {args=}, {kwargs=})")
             self.on_cmd(self, cmd, *args, **kwargs)
 
 
@@ -589,7 +649,21 @@ class ChessGameDisplay(wx.Frame):
         :arg: argument to cmd
         """
         self.call_later = wx.CallLater(int_ms, cmd)    
-    
+
+    def is_end_game(self):
+        """ Check if end of game, clear after call
+        """
+        if self._is_end_game:
+            self._is_end_game = False
+            return True
+        
+        return False
+
+    def set_end_game(self):
+        """ Set end of game flag
+        """
+        self._is_end_game = True
+                
     def update(self):
         """ Do update, allowing graphics to update
         """
@@ -750,17 +824,20 @@ class ChessGameDisplay(wx.Frame):
         """ Select game move and set to pause there during 
         next looping/scanning run
         """
+        SlTrace.lg("wx_chess_game_display.py:goto_move_cmd")
         pause_no = self.going_to_move_no
         at = "" if pause_no is None else f"[{pause_no}]"
-        new_val_str = gr_input(f"Pause at {at}:",
-                               default=str(self.going_to_move_no))
-        if new_val_str  == '-':
-            self.going_to_move_no = None
-            return
-        
-        self.going_to_move_no = int(new_val_str)
-
-    
+        new_val_str = gr_input()
+        SlTrace.lg(f"{new_val_str =}")
+        if (m_move := re.match("^\s*(\d+)\s*(\w*)\s*$", new_val_str)):
+            move_no = int(m_move.group(1))
+            moved_g = m_move.group(2)
+            moved_l = moved_g.lower()[0] if moved_g != "" else "w"
+            moved = "white" if moved_l == "w" else "black"
+            self.display_dispatch("goto_move", move_no, moved=moved)
+        else:
+            SlTrace.lg(f"Unexpected goto_move str:{new_val_str}")
+            
     def print_game_cmd(self):
         """ list game info
         """
@@ -819,6 +896,7 @@ class ChessGameDisplay(wx.Frame):
         """ Start files scan
         :games_dir: directory of games pgn files
         """
+        SlTrace.set_start_time()
         self.scan_loops += 1
         if self.scan_max_loops is not None:
             if self.scan_loops > self.scan_max_loops:
@@ -917,6 +995,7 @@ class ChessGameDisplay(wx.Frame):
                 continue
             
             self.scan_ngame += 1
+            self.scan_ngame_total += 1
             # Update with new game info
             self.scan_moves_iter = self.scan_moves_iterator(game)
             short_desc = (f"{game.white} vs. {game.black}"
@@ -1065,7 +1144,7 @@ class ChessGameDisplay(wx.Frame):
 
     
 if __name__ == '__main__':
-    from select_trace import SlTrace
+    from graphics_braille.select_trace import SlTrace
     from chessboard import Chessboard
     from chessboard_print import ChessboardPrint
     from chessboard_stack import ChessboardStack

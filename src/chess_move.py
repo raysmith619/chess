@@ -2,7 +2,7 @@
 
 import re
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 from chess_error import ChessError
 from chess_move_notation import ChessMoveNotation
@@ -84,6 +84,9 @@ class ChessMove:
         
         # Parse basic notation
         if self.cmn.decode_spec_parts(spec=spec):
+            return self.cmn.err
+        
+        if self.cmn.game_result is not None:
             self.cmn.make_move_update()
             return self.cmn.err
         
@@ -164,7 +167,7 @@ class ChessMove:
                     
                     if len(pos_sqs) > 1:
                         return self.err_add(f"Ambiguous spec:{self.spec}"
-                                            f" orig sqposibilities: {pos_pss}")
+                                            f" orig sqposibilities: {pos_sqs}")
 
                 if len(self.piece_choice) == 2:
                     return self.err_add(f"TBD: two char piece_choice spec: {self.spec}")

@@ -6,7 +6,7 @@ based on piece, square, board conditions
 """
 import re
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 from chess_error import ChessError
 

@@ -2,8 +2,8 @@
 
 import wx
 
-from select_trace import SlTrace
-from wx_trace_control_window import TraceControlWindow
+from graphics_braille.select_trace import SlTrace
+from graphics_braille.wx_trace_control_window import TraceControlWindow
 
 
 class MenuDisp:
@@ -111,26 +111,10 @@ class CgdMenus:
                 {"name" : "Game &S", "cmd" : fte.setting_game_start_cmd},
                 {"name" : "Game &E", "cmd" : fte.setting_game_end_cmd},
                 ],
+
             "settings" :
                 [
-                #         list - only using second - heading
-                {"name" : ("help","Help"), "cmd" : fte.settings_help_cmd},
-                {"name" : ("hd","&Boards Print"), "cmd" : fte.setting_print_bd_cmd},
-                {"name" : ("hd","B&oards No Print"), "cmd" : fte.setting_print_bd_no_cmd},
-
-                {"name" : ("hd","&Move Display"), "cmd" : fte.setting_move_display_cmd},
-                {"name" : ("hd","Mo&ve &No Display"), "cmd" : fte.setting_move_display_no_cmd},
-
-                {"name" : ("hd","&Final Position Display"), "cmd" : fte.setting_final_position_display_cmd},
-                {"name" : ("hd","F&inal Position No Display"), "cmd" : fte.setting_final_position_display_no_cmd},
-
-                {"name" : ("hd","F&EN Print"), "cmd" : fte.setting_print_fen_cmd},
-                {"name" : ("hd","FEN No &Print"), "cmd" : fte.setting_print_fen_no_cmd},
-                
-                {"name" : ("hd","&Loop Interval"), "cmd" : fte.setting_loop_interval_cmd},
-            
-                {"name" : ("hd","&Stop on error"), "cmd" : fte.setting_stop_on_error_cmd},
-                {"name" : ("hd","NO S&top on error"), "cmd" : fte.setting_no_stop_on_error_cmd},
+                {"name" : ("hd","Window"), "cmd" : fte.settings_window_cmd},
                ],
             "game" :
                 [
@@ -152,6 +136,28 @@ class CgdMenus:
                 ],
             
         }
+
+        """ Old Settings menu items replaced by ChessSettingsFrame
+                        #         list - only using second - heading
+                {"name" : ("help","Help"), "cmd" : self.settings_help_cmd},
+                {"name" : ("hd","&Boards Print"), "cmd" : fte.setting_print_bd_cmd},
+                {"name" : ("hd","B&oards No Print"), "cmd" : fte.setting_print_bd_no_cmd},
+
+                {"name" : ("hd","&Move Display"), "cmd" : fte.setting_move_display_cmd},
+                {"name" : ("hd","Mo&ve &No Display"), "cmd" : fte.setting_move_display_no_cmd},
+
+                {"name" : ("hd","&Final Position Display"), "cmd" : fte.setting_final_position_display_cmd},
+                {"name" : ("hd","F&inal Position No Display"), "cmd" : fte.setting_final_position_display_no_cmd},
+
+                {"name" : ("hd","F&EN Print"), "cmd" : fte.setting_print_fen_cmd},
+                {"name" : ("hd","FEN No &Print"), "cmd" : fte.setting_print_fen_no_cmd},
+                
+                {"name" : ("hd","&Loop Interval"), "cmd" : fte.setting_loop_interval_cmd},
+            
+                {"name" : ("hd","&Stop on error"), "cmd" : fte.setting_stop_on_error_cmd},
+                {"name" : ("hd","NO S&top on error"), "cmd" : fte.setting_no_stop_on_error_cmd},
+
+        """
         
         self.frame.SetMenuBar(menubar)
         self.menus_cmd_menu_item = {}   # by menu short cut by cmd short cut

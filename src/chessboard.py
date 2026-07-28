@@ -8,7 +8,7 @@ Goals:
 import re
 import copy
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 from chess_piece_movement import ChessPieceMovement
 from chess_save_unit import ChessSaveUnit

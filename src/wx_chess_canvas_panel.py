@@ -13,14 +13,14 @@ import time
 import re
 
 import wx
-from select_trace import SlTrace, SelectError
+from graphics_braille.select_trace import SlTrace, SelectError
 
 from wx_chess_piece_images import ChessPieceImages
 
-from wx_stuff import *
-from wx_canvas_panel import CanvasPanel 
-from wx_canvas_panel_item import CanvasPanelItem            
-from wx_adw_display_pending import AdwDisplayPending
+from graphics_braille.wx_stuff import *
+from graphics_braille.wx_canvas_panel import CanvasPanel 
+from graphics_braille.wx_canvas_panel_item import CanvasPanelItem            
+from graphics_braille.wx_adw_display_pending import AdwDisplayPending
 
         
 class ChessCanvasPanel(CanvasPanel):
@@ -1589,7 +1589,7 @@ class ChessCanvasPanel(CanvasPanel):
 
 
 if __name__ == '__main__':
-    from select_trace import SlTrace
+    from graphics_braille.select_trace import SlTrace
 
     from chessboard_print import ChessboardPrint
     from chessboard import Chessboard

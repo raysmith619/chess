@@ -1,5 +1,5 @@
 #chess_square.py    10Apr2025
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 """
 Basis for Chess Square 

@@ -31,9 +31,9 @@ import multiprocessing as mp
 import wx
 import pgn
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
-from wx_speaker_control import SpeakerControlLocal
+from graphics_braille.wx_speaker_control import SpeakerControlLocal
 
 from chess_error import ChessError
 from chessboard import Chessboard
@@ -201,13 +201,13 @@ def display_board(desc=None, new_display=False,
     gdesc = "" if game_desc is None else game_desc
     file_desc = ""
     if cbd.scan_nfile > 0:
-        file_desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
-    desc = file_desc + f"{desc:<15}"  + gdesc
+        file_desc = f"{cbd.scan_ngame_total} ({cbd.scan_nfile} {cbd.scan_ngame:2})    "
+    desc = file_desc + f"{desc:<15} "  + gdesc
     if xdisp or cbd.setting_is_printing_board:
         SlTrace.lg("\n"
                    +desc+
                    "\n"+bd_str, replace_non_ascii=None)
-    if cbd.setting_is_printing_fen:
+    if xdisp or cbd.setting_is_printing_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     if new_display:
@@ -255,6 +255,10 @@ def do_move(cm_or_spec=None):
     :cm_or_spec: move(ChessMove) or move specifiction
         default: get next move
     """
+    if cbd.is_end_game():
+        display_board(move_type=cbd.END_GAME)
+        return None
+        
     if cm_or_spec is None:
         cm_or_spec = get_next_move()
         if cm_or_spec is None:
@@ -278,7 +282,8 @@ def do_move(cm_or_spec=None):
     else:
         cm = cm_or_spec
     if cm is not None and cm.game_result is not None:
-        display_board()
+        cbd.set_end_game()
+        display_board(move_type=cbd.END_GAME)
         return None
     
     if cbd.going_to_move_no == cm.move_no:
@@ -379,8 +384,8 @@ def scan_move(move):
         scan_new_game(cbd.sel_game)
         return
     
-    elif move == cbd.END_GAME:
-        SlTrace.lg("Game end")
+    elif cbd.is_end_game() or move == cbd.END_GAME:
+        SlTrace.lg("Game end", "game_end")
         if cbd.setting_is_final_position_display:
             display_board(move_type=cbd.END_GAME)
         return
@@ -397,7 +402,7 @@ def scan_move(move):
         return
         
     if do_move(move) is None:
-        SlTrace.lg("Unexpected move ending")
+        SlTrace.lg(f"Game result: {move =}", "game_result")
         return
     
     desc = get_move_desc()
@@ -449,18 +454,20 @@ def get_file_games(cmd, *args, **kwargs):
     game_desc = short_desc
     setup_board(game)
 
-def goto_move_idx(input):
-    """ Go to move *set display)
-    :input: input text goto_move_idx<whitespace>*<index>
+def goto_move_cmd(move_no, moved="white"):
+    """ Go to move (after) and set display
+    move_idx: table index, 0 - game beginning, before white's first move
+    :move_no: move number (after move), 1 - after white or black first move
+    :moved: "-","white","black" last moved default: "white"
     """
-    if isinstance(input, int):
-        move_index = input
-    elif isinstance(input, str):
-        if not (goto_match:=re.match(r'goto_move_idx?\s*(-?\d+)', input)):
-            raise ChessError(f"goto_move_idx {input = } bad input")
-    
-    val_str = goto_match.group(1)
-    move_idx = int(val_str)
+    SlTrace.lg(f"goto_move_cmd({move_no =}, {moved=})")
+    if move_no < 1:
+        move_idx = 0
+    else:
+        move_idx = (move_no-1)*2+1
+        if moved == "black":
+            move_idx += 1
+    SlTrace.lg(f"goto_move_cmd: {move_no=}, {moved=}, {move_idx=}")    
     stop_loop()
     if move_idx < 0 or move_idx > len(cbs.board_stack)-1:
         while do_move() is not None:
@@ -563,8 +570,8 @@ def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
     elif cmd == "get_fen":
         return get_fen_cmd(args[0])
     
-    elif cmd == "goto_move_idx":
-        return goto_move_idx(args[0])
+    elif cmd == "goto_move":
+        return goto_move_cmd(args[0], **kwargs)
     
     elif cmd == "print_fen":
         cbd.print_fen()
@@ -625,6 +632,7 @@ def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
 if __name__ == '__main__':
     setup_display(demo_game)
     setup_board(demo_game)    
-    cbd.set_cmd(display_cmd_proc)     
+    cbd.set_cmd(display_cmd_proc)
+    SlTrace.set_start_time()     
     cbd.update()            
     cbd.mainloop()     

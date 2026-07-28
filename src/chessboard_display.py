@@ -17,8 +17,8 @@ import copy
 import pgn
 
 
-from select_trace import SlTrace
-from select_trace import TraceError
+from graphics_braille.select_trace import SlTrace
+from graphics_braille.select_trace import TraceError
 from chess_piece_images import ChessPieceImages
 from input_gather import InputGather
 from chessboard_stack import ChessboardStack
@@ -951,7 +951,7 @@ class ChessboardDisplay:
         self.mw.mainloop()
 
 if __name__ == '__main__':
-    from select_trace import SlTrace
+    from graphics_braille.select_trace import SlTrace
     from chessboard import Chessboard
     from chessboard_print import ChessboardPrint
     

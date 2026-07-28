@@ -11,15 +11,15 @@ from math import sqrt
 from datetime import datetime
 import time 
 
-from wx_stuff import *
-from select_trace import SlTrace
-from wx_audio_beep import AudioBeep
+from graphics_braille.wx_stuff import *
+from graphics_braille.select_trace import SlTrace
+from graphics_braille.wx_audio_beep import AudioBeep
 from chess_square import ChessSquare
 from chessboard_stack import ChessboardStack
-from grid_fill_gobble import GridFillGobble
+from graphics_braille.grid_fill_gobble import GridFillGobble
 
 from wx_cgd_menus import CgdMenus
-from wx_key_cmd_proc import KeyCmdProc
+from graphics_braille.wx_key_cmd_proc import KeyCmdProc
 
 
 class CgdFrontEnd:
@@ -1629,6 +1629,9 @@ class CgdFrontEnd:
 
         
     """ Settings """
+    def settings_window_cmd(self,_=None):
+        self.adw.settings_window_cmd()
+        
     def setting_print_bd_cmd(self,_=None):
         self.adw.setting_print_bd_cmd()
         

@@ -4,7 +4,7 @@
 Prompt User and accept input
 """
 import tkinter as tk       # Get all tkinter via tk.
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 def gr_input(prompt="Enter", mw=None, default=None):
     """ Get input from user
@@ -13,13 +13,15 @@ def gr_input(prompt="Enter", mw=None, default=None):
     :default: default value
     """
     global entry_text
+    if default is None:
+        default = ""
     if mw is None:
         mw = tk.Tk()
         mw.withdraw()
     input_window = tk.Toplevel(mw)
     
     entry_var = tk.StringVar(input_window, default)  # Holds the entry text
-    entry_text = None               # Set if OK
+    entry_text = None              # Set if OK
    
     def ok_cmd():
         """ Function called  upon "OK" button
@@ -40,6 +42,7 @@ def gr_input(prompt="Enter", mw=None, default=None):
                      textvariable=entry_var, bd=3) # Create Entry space on right
     entry.bind("<Return>", return_process)  # Catch <Return>
     entry.pack(side=tk.LEFT)
+    entry.focus_force()
 
     button = tk.Button(input_window, text="OK",
                        command=ok_cmd, fg="blue", bg="light gray")

@@ -2,7 +2,7 @@
 import wx
 import sys, glob, random
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 from wx_virtual_list_ctl import VirtualListCtrl
 
 

@@ -5,8 +5,8 @@ import re
 
 import wx
 
-from select_trace import SlTrace
-from wx_canvas_panel import CanvasPanel
+from graphics_braille.select_trace import SlTrace
+from graphics_braille.wx_canvas_panel import CanvasPanel
 
 from wx_chess_piece_images import ChessPieceImages
 
@@ -225,7 +225,7 @@ class ChessboardPanel(CanvasPanel):
         #self.clear() # Remove after display
         pass
 if __name__ == '__main__':
-    from select_trace import SlTrace
+    from graphics_braille.select_trace import SlTrace
 
     from chessboard_print import ChessboardPrint
     from chessboard import Chessboard

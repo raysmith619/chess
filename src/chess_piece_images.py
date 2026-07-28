@@ -6,7 +6,7 @@ import re
 from PIL import Image, ImageTk
 import tkinter as tk
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 os.chdir(os.path.dirname(__file__))     # set this dir to be working dir
 pieces_dir = "../chess_pieces"
