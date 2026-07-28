@@ -1,0 +1,20 @@
+wx_chess_game_show execution times
+t2-t1
+1234
+(t2-t1)/826
+1.49 # sec/game 826 games, no move display, nor printing
+
+1428 sec
+1.728813559322034
+1.72 # sec/game 826 games printing, no move display
+
+13860 sec
+16.78 # sec/game 826 games full display, printing
+16.789346246973366
+
+After stopping longest run:
+C:\Users\raysm\vscode\resource_lib> 84598.0/13769
+6.14 sec per game for 13769 games
+32354 games 241534.0 seconds 7.46 seconds/game
+
+ 

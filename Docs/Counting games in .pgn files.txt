@@ -1,0 +1,23 @@
+Counting games in .pgn files
+$ grep '\[Event' *.pgn |wc
+  18252   63942  692982
+
+Owner@DESKTOP-CGE6H48 /cygdrive/c/Users/raysm/vscode/chess/games
+$ grep '\[Event' *.pgn |perl -ane 'if (/(^\w+.pgn)/){printf("$1\n")}'|sort|uniq -c
+   1661 Alekhine.pgn
+   1376 Benko.pgn
+   1013 Byrne.pgn
+    597 Capablanca.pgn
+   7073 Carlsen.pgn
+    305 Fine.pgn
+    827 Fischer.pgn
+    641 Kotov.pgn
+    211 Morphy.pgn
+   1604 Najdorf.pgn
+    512 Nimzowitsch.pgn
+   2431 Tal.pgn
+      1 fischer_spassky_1992.pgn
+
+Counting games from wx_chess_show.py log file:
+$ perl -ane 'if(/^\s*\S+(Game end.*)/){printf("$1\n")}'  wx_chess_game_show_20250802_102248.sllog|wc
+   8332   16664   83320
