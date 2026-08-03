@@ -2,18 +2,19 @@
 """ 
 Provides a stack of chessboards (Chessboard)
 to facilitate such things as undo,redo game branching
+Hosts ChessGotoMove, provider of game position display with move change function
 """
 import copy
 
 from chessboard import Chessboard
 from chess_move import ChessMove
+from wx_chess_goto_move import ChessGotoMove
 
 class ChessboardStack:
     def __init__(self):
         self.board_stack = []
         self.cur_bd_index = -1      # Reference to current board in stack
                                 # < 0 ==> no current board
-
         
 
     def push_bd(self, bd=None):

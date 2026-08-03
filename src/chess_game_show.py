@@ -24,7 +24,7 @@ in ChessboardStack which will operate on the current board.
 import re
 import argparse
 
-from select_trace import SlTrace
+from graphics_braille.select_trace import SlTrace
 
 
 from chess_error import ChessError

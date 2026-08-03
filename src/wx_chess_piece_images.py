@@ -145,7 +145,7 @@ if __name__ == '__main__':
             np = 0
             im_x = im_x_start
             im_y = im_y_start
-            dc = wx.PaintDC(self.grid_panel)
+            dc = wx.PaintDC(self)
             dc.Clear()
             for piece_ch in self.cpi.get_pieces():
                 np += 1

@@ -39,6 +39,7 @@ from chess_game_data_source import ChessGameDataSource
 from wx_selection_ok import SelectionOK
 from wx_chess_settings_frame import ChessSettingsFrame
 from chess_settings_server import ChessSettingsServer
+from wx_chess_goto_move import ChessGotoMove
 
 class ChessGameDisplay(wx.Frame):
     base_display_id = 0         # Unique display id: 1...
@@ -92,6 +93,7 @@ class ChessGameDisplay(wx.Frame):
         key_str="",
         setup_wx_win = True,
                  ):
+        self.chess_goto_move = None     # Goto/game display
         
         #frame = CanvasFrame(title=mytitle, size=wx.Size(width,height))
         """ Setup game window
@@ -207,8 +209,18 @@ class ChessGameDisplay(wx.Frame):
         self.Bind(wx.EVT_BUTTON, self.cmd_btn_unmove, btn_unmove)
         btn_unmove.SetForegroundColour(wx.RED)
         btn_sizer.Add(btn_unmove)
-
-        btn_sizer.AddStretchSpacer()
+        
+        btn_sizer.AddStretchSpacer(1)
+        txt_game_move = wx.StaticText(btn_panel,
+                        label="Game Move",
+                        style=wx.ALIGN_CENTRE_HORIZONTAL)
+        btn_sizer.Add(txt_game_move, wx.ALIGN_CENTER_HORIZONTAL)
+        gm_font = txt_game_move.GetFont()
+        gm_font.SetPointSize(16)
+        txt_game_move.SetFont(gm_font)
+        self.txt_game_move = txt_game_move
+        
+        btn_sizer.AddStretchSpacer(1)
         btn_panel_right = wx.Panel(btn_panel)
         btn_sizer.Add(btn_panel_right)
         btn_right_sizer = wx.BoxSizer(wx.HORIZONTAL)
@@ -253,8 +265,21 @@ class ChessGameDisplay(wx.Frame):
         ###wxport###self.mw.focus_force()
         #self.pos_check()            # Startup possition check loop
         self.fte.do_complete(menu_str=menu_str, key_str=key_str)
+        self.Bind(wx.EVT_CLOSE, self.on_close_window)
         self.Raise()                # put on top
 
+    def cgm_on_move_change(self, move_no=None, moved=None):
+        """ Called on move changes from ChessGameMove
+        :move_no: move number 0-beginning,
+        :moved: color moved "white"/"black"
+        """
+        if move_no == 0:
+            SlTrace.lg("Beginning")
+        SlTrace.lg(f"{move_no=} {moved=}")
+        SlTrace.lg(f"ChessGameDisplay.on_move_change("
+                   f"{move_no=}, {moved=}")
+        self.display_dispatch("set_move_no", move_no, moved=moved)
+        
     def restart(self):
         """ Restart board
         """
@@ -444,17 +469,41 @@ class ChessGameDisplay(wx.Frame):
     """ 
     Button commands
     """
+    def send_chess_goto_move_ch_cmd(self, ch):
+        """ Send cmd as key via ChessGotoMove
+        self.GetEventHandler().ProcessEvent(event)
+        :ch: character to simulate key_down
+        """
+        if self.chess_goto_move is not None:
+            self.chess_goto_move.simulate_key_down(ch)
+
+
+    def on_chess_goto_move_cmd(self, ch):
+        """ Called on ChessGotoMove key press
+        :ch: character pressed
+        """
+        if ch == "l":
+            self.display_dispatch("chess_loop") 
+        elif ch == "s":
+            self.display_dispatch("chess_stop")
+        else:
+            ChessError(f"on_chess_goto_cmd: unknown {ch = }") 
+
     def cmd_btn_move(self, e=None):
-        self.display_dispatch("chess_move")
+        ###self.display_dispatch("chess_move")
+        self.send_chess_goto_move_ch_cmd(" ")
     
     def cmd_btn_unmove(self, e=None):
-        self.display_dispatch("chess_unmove")
+        ###self.display_dispatch("chess_unmove")
+        self.send_chess_goto_move_ch_cmd("\b")
 
     def cmd_btn_loop(self, e=None):
-        self.display_dispatch("loop_play")
+        ###self.display_dispatch("loop_play")
+        self.send_chess_goto_move_ch_cmd("l")
 
     def cmd_btn_stop(self, e=None):
         self.display_dispatch("stop")
+        self.send_chess_goto_move_ch_cmd("s")
     
     """ 
     End of button commands
@@ -596,14 +645,33 @@ class ChessGameDisplay(wx.Frame):
         """
         old_cmd = self.on_cmd
         self.on_cmd = on_cmd
-        return old_cmd
+        return old_cmd  
+
+    def set_move_no(self, move_no, moved="white"):
+        """ Set current move number and moved color
+        No display is done, just set the current board index
+        :move_no: move number (after) 1 - after white or black first move
+        :moved: "-","white","black" last moved default: "white"
+        """
+        SlTrace.lg(f"chess_game_display: set_move_no({move_no =}, {moved=})")
+        if move_no < 1:
+            move_idx = 0
+        else:
+            move_idx = (move_no-1)*2+1
+            if moved == "black":
+                move_idx += 1
+        stack_len = len(self.cbs.board_stack)        
+        #if move_idx >= 0 and move_idx < stack_len:
+        self.cbs.set_cur_bd_index(move_idx)
 
     def set_title(self, title):
         """ Set game frame title
         :title: title text
         """
         self.SetTitle(title)
-    
+        self.txt_game_move.SetLabel(" "*20 + title)
+        self.txt_game_move.Refresh()
+
     """
     Capture std keyboard key presses
     and redirect they to input
@@ -663,7 +731,44 @@ class ChessGameDisplay(wx.Frame):
         """ Set end of game flag
         """
         self._is_end_game = True
-                
+
+    def get_cur_half_moves(self):
+        """Number of half moves in game
+        0 at beginning of game
+        """
+        bd = self.get_bd()
+        if bd is None:
+            return 0
+        cm = bd.get_move()
+        if cm is None:
+            return 0
+        move_no = cm.get_move_no()
+        to_move = cm.get_to_move()
+        nhalf = 2*(move_no-1)
+        if to_move == "black":
+            nhalf += 1  # white has moved
+        return nhalf
+    
+    def setup_chess_goto_move(self, game=None):
+        """ Setup goto_move for game change
+        :game: PGN notation
+        """
+        if self.chess_goto_move is None:
+            self.chess_goto_move = ChessGotoMove(
+                self,
+                game=game,
+                on_move_change=self.cgm_on_move_change)
+        gt_total_hmove = self.chess_goto_move.get_total_half_moves()
+        bd_cur_hmove = self.get_cur_half_moves()
+        if bd_cur_hmove > gt_total_hmove:
+            if self.chess_goto_move is not None:
+                self.chess_goto_move.Destroy()
+                self.chess_goto_move = None
+            self.chess_goto_move = ChessGotoMove(
+                self,
+                game=self.sel_game,
+                on_move_change=self.on_move_change)
+           
     def update(self):
         """ Do update, allowing graphics to update
         """
@@ -690,7 +795,23 @@ class ChessGameDisplay(wx.Frame):
         self.chess_pan.set_board(bd)
         self.chess_pan.Refresh()
         self.Thaw()
+
+    def get_moved(self):
+        """ color just moved
+        """
         
+    def update_chess_goto_move(self):
+        """ Update goto display
+        """
+        SlTrace.lg("update_chess_goto_move")
+        if self.chess_goto_move is None:
+            self.setup_chess_goto_move()
+        self.setup_chess_goto_move()
+        bd_cur_half_move = self.get_cur_half_moves()
+        self.chess_goto_move.set_half_move(
+            half_move=bd_cur_half_move,
+            ignore_select=True)
+
     def get_geo_whxy(self):
         """ Obtain geometry of display window
         :returns: list of width,height,x-offset,y-offset ints in pixels
@@ -1141,8 +1262,22 @@ class ChessGameDisplay(wx.Frame):
         :dup_stdout:  send duplicate to stdout
         """
         self.fte.win_print(args=args, dup_stdout=dup_stdout, kwargs=kwargs)
+        
+    def on_close_window(self, event):
+        SlTrace.lg("wx_chess_game_display"
+                   " on_close_window")
+        if self.chess_goto_move is not None:
+            self.chess_goto_move.Destroy()
+        self.Destroy()
 
-    
+    #############################################################
+    ###   Speaker Contontrol Stub out
+    ############################################################
+    def get_speaker_control(self):
+        """ void stub for speaker control
+        """
+        return None
+            
 if __name__ == '__main__':
     from graphics_braille.select_trace import SlTrace
     from chessboard import Chessboard

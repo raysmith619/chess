@@ -33,7 +33,7 @@ import pgn
 
 from graphics_braille.select_trace import SlTrace
 
-from graphics_braille.wx_speaker_control import SpeakerControlLocal
+###from graphics_braille.wx_speaker_control import SpeakerControlLocal
 
 from chess_error import ChessError
 from chessboard import Chessboard
@@ -42,6 +42,7 @@ from chess_move import ChessMove
 from chess_move_notation import ChessMoveNotation
 from wx_chess_game_display import ChessGameDisplay
 from chessboard_print import ChessboardPrint
+from wx_chess_goto_move import ChessGotoMove
 
 SlTrace.clearFlags()
 #SlTrace.setFlags("no_ts=0")        # Timestamps for loging
@@ -75,7 +76,19 @@ Nc3+ 41.Kc1 Rc2# 0-1
 pgn_games = pgn.loads(demo_game_text)
 demo_game = pgn_games[0]
 current_game = demo_game   # current game
-current_move_index = None  # current move index
+SlTrace.lg(f"{demo_game}")
+SlTrace.lg("\nmoves:")
+moves_str = ""
+line_str = ""
+for move in demo_game.moves:
+    if len(line_str) >= 40:
+        moves_str += "\n"
+        line_str = ""
+    moves_str += " " + move
+    line_str += " " + move
+SlTrace.lg(moves_str)
+
+current_move_index = None  # current move index"
 
 step_through = True        # wait till user commands
 xs = True
@@ -118,7 +131,7 @@ speaker_control = None      # Set up for speaker
 # Setup centralized speaker control
 if __name__ == '__main__':
     mp.freeze_support()
-    speaker_control = SpeakerControlLocal()   # centralized access to sound/speech engine
+    ###speaker_control = SpeakerControlLocal()   # centralized access to sound/speech engine
 
 # Support board/display access
 cbs = None
@@ -132,7 +145,7 @@ def setup_display(game):
             default: no game
     """
     global cbs, cbd, move_spec_list
-    
+    SlTrace.lg(f"setup_display: {game=}")
     cb = Chessboard()           # For inital sizes
     cbs = ChessboardStack()
     cbs.push_bd(cb)
@@ -140,7 +153,8 @@ def setup_display(game):
     cbd = ChessGameDisplay(cbs, title="Begin Game",
                         win_width=width, win_height=height,
                         speaker_control=speaker_control)
-    if cbd.is_display_fen:
+    cbd.setup_chess_goto_move(game=game)
+    if hasattr(cbd, 'is_display_fen') and cbd.is_display_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     cbp = ChessboardPrint(cb)
@@ -255,6 +269,7 @@ def do_move(cm_or_spec=None):
     :cm_or_spec: move(ChessMove) or move specifiction
         default: get next move
     """
+    SlTrace.lg(f"do_move({cm_or_spec =})")
     if cbd.is_end_game():
         display_board(move_type=cbd.END_GAME)
         return None
@@ -262,6 +277,7 @@ def do_move(cm_or_spec=None):
     if cm_or_spec is None:
         cm_or_spec = get_next_move()
         if cm_or_spec is None:
+            SlTrace.lg("    No more moves")
             return None
         
     if isinstance(cm_or_spec, str):
@@ -345,6 +361,7 @@ def restart_game():
 def do_looping():
     """ do game loop
     """
+    wx.GetApp().Yield()     # Allow ChessGotoMove refresh
     if do_move() is None:
         display_board()
         restart_game()
@@ -516,7 +533,56 @@ def new_window():
     """ Create new independant window with current game state
     """
     display_board(desc="New Window", new_display=True)
-                
+
+def set_move_no(move_no, moved="white"):
+    """ Set current move number and moved color
+    :move_no: move number (after) 1 - after white or black first move
+    :moved: "-","white","black" last moved default: "white"
+    """
+    SlTrace.lg(f"chess_game_show: set_move_no({move_no =}, {moved=})")
+    #cbd.set_move_no(move_no, moved=moved)
+    if move_no < 1:
+        move_idx = 0
+    else:
+        move_idx = (move_no-1)*2+1
+        if moved == "black":
+            move_idx += 1
+    stop_loop()
+    # If move_idx is out of range, do moves to get there,
+    # bringing in moves from current game, if any
+    if move_idx < 0 or move_idx > len(cbs.board_stack)-1:
+        while do_move() is not None:
+            pass
+    stack_len = len(cbs.board_stack)        
+    if move_idx >= 0 and move_idx < stack_len:
+        cbs.set_cur_bd_index(move_idx)
+    else:
+        ChessError(f"set_move_no: {move_no =}, {moved =} out of range: {stack_len =}")
+    display_board() 
+
+def set_move_no_x(move_no, moved="white"):
+    """ Set current move number and moved color
+    :move_no: move number (after) 1 - after white or black first move
+    :moved: "-","white","black" last moved default: "white"
+    """
+    SlTrace.lg(f"chess_game_show: set_move_no({move_no =}, {moved=})")
+    if move_no < 1:
+        move_idx = 0
+    else:
+        move_idx = (move_no-1)*2+1
+        if moved == "black":
+            move_idx += 1
+    stop_loop()
+    if move_idx < 0 or move_idx > len(cbs.board_stack)-1:
+        while do_move() is not None:
+            pass
+
+    if move_idx < 0:
+        move_idx = len(cbs.board_stack)+move_idx
+    if move_idx >= 0 and move_idx < len(cbs.board_stack):
+        cbs.set_cur_bd_index(move_idx)
+        display_board() 
+                    
 def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
     """ Dispatch action requests
     :cbdisp: ChessGameDisplay instance
@@ -525,7 +591,9 @@ def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
     :kwargs: keyword args
     """
     """ Process display commands
-        cbdisp contains attribute display_id, a unique display id
+        set_move_no move_no, moved
+            No propagation further
+
     command string
         s,n: do_move
         u: undo move
@@ -545,7 +613,13 @@ def display_cmd_proc(cbdisp, cmd, *args, **kwargs):
     cm = None
     # Process commands
     SlTrace.lg(f"{cmd =} {args =}", "cmd_trace")
-    if cmd == "game file":
+    if cmd == "set_move_no":
+        move_no = args[0]
+        moved = kwargs.get("moved", "white")
+        set_move_no(move_no, moved=moved)
+        return None
+    
+    elif cmd == "game file":
        return get_file_games(cmd, *args, **kwargs)
     
     elif cmd == "chess_move":

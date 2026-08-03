@@ -131,4 +131,4 @@ if __name__ == '__main__':
         image = cpi2.get_piece_image(piece_ch)
         canvas2.create_image(im_x, im_y, anchor=tk.CENTER, image=image)
     root.update()
-    
+    root.mainloop()
