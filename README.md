@@ -462,3 +462,9 @@ Provides logging, tracing, properties support.
   * trace/logging package
   * derived from smTrace.java (ours)
   * properties file support
+
+## Program Structure / Design Considerations
+Somewhat midway in this program's evolution I created two paths - 1st based on Tkinter for GUI, 2nd based on wxPython.  The Tkinter route was primarily because Tkinter is well known and is provided in the Python installation.  The wxPython route was based on the fact that Tkinter does not provide easy access to screen readers which facilitate access by the blind.  I wanted to progress simultaneously on both paths.  My approach has been to create, where the wxPython path required differences, a file with a "wx_" prefix.  An example is that Tkinter main program is "chess_game_game_show.py" while the wxPython main program file is "wx_chess_game_show.py".
+While I have attempted to continue development of both paths, I have moved most development towards wxPython.  Some features, notably the ChessGotoMove display/control through a game notation frame is only in the wxPython path.
+#### Latest Game Display Example
+![Simple Chess Display](Docs/simple_chess_board_wp.png)
