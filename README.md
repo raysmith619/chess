@@ -1,16 +1,16 @@
 # Chess notes
 ## Introduction
-I started this work to explore working with chess in the programming world.  My intention was not to compeate
-with the major chess programms available. My inspiration was my friend John's Java Script program to display some simple
+I started this work to explore working with chess in the programming world.  My intention was not to compete
+with the major chess programs available. My inspiration was my friend John's Java Script program to display some simple
 chess checkmate examples.  I'm still humbled by the fact that his whole program is executable directly from my email!
 My first progress was the display of chessboard positions.  The input consists of the, incomplete, FEN chess notation.  Showing that
-"lazyness is the mother of invention", I added support for a few pieces on the board, e.g., ':Kc1Qe1kh7 w' for white king at c1,
+"laziness is the mother of invention", I added support for a few pieces on the board, e.g., ':Kc1Qe1kh7 w' for white king at c1,
 white queen at e1, black king at h7 with white to move.
 
 ## Goals
 My intention is to develop some tools to interpret, execute, and display chess games/situations.  While not striving to produce
 chess machinery, I hope to experiment a lot.  With the potential of producing serious chess machinery
-with resonable display capabilities, I hope to separate display from execution.  I hope to provide support for the blind,
+with reasonable display capabilities, I hope to separate display from execution.  I hope to provide support for the blind,
 similar to my work in 
 
 
@@ -467,4 +467,4 @@ Provides logging, tracing, properties support.
 Somewhat midway in this program's evolution I created two paths - 1st based on Tkinter for GUI, 2nd based on wxPython.  The Tkinter route was primarily because Tkinter is well known and is provided in the Python installation.  The wxPython route was based on the fact that Tkinter does not provide easy access to screen readers which facilitate access by the blind.  I wanted to progress simultaneously on both paths.  My approach has been to create, where the wxPython path required differences, a file with a "wx_" prefix.  An example is that Tkinter main program is "chess_game_game_show.py" while the wxPython main program file is "wx_chess_game_show.py".
 While I have attempted to continue development of both paths, I have moved most development towards wxPython.  Some features, notably the ChessGotoMove display/control through a game notation frame is only in the wxPython path.
 #### Latest Game Display Example
-![Simple Chess Display](Docs/simple_chess_board_wp.png)
+![Including GotoMove](Docs/Chess Display with Goto plus Help.png)
