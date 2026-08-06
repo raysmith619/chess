@@ -467,4 +467,12 @@ Provides logging, tracing, properties support.
 Somewhat midway in this program's evolution I created two paths - 1st based on Tkinter for GUI, 2nd based on wxPython.  The Tkinter route was primarily because Tkinter is well known and is provided in the Python installation.  The wxPython route was based on the fact that Tkinter does not provide easy access to screen readers which facilitate access by the blind.  I wanted to progress simultaneously on both paths.  My approach has been to create, where the wxPython path required differences, a file with a "wx_" prefix.  An example is that Tkinter main program is "chess_game_game_show.py" while the wxPython main program file is "wx_chess_game_show.py".
 While I have attempted to continue development of both paths, I have moved most development towards wxPython.  Some features, notably the ChessGotoMove display/control through a game notation frame is only in the wxPython path.
 #### Latest Game Display Example
-![Including GotoMove](Docs/Chess Display with Goto plus Help.png)
+![Including GotoMove](Docs/Chess_Display_with_Goto_plus_Help.png)
+
+### Simple Chess Display Program Structure
+chess_game_show.py contains user control commands display the game.  These commands are sent to a ChessGameDisplay object(chess_game_display.py/wx_chess_game_display.py) which generates and modifies the status of the game display.  ChessGameDisplay invokes and communicates with ChessGotoMove(wx_chess_goto_move.py) which displays the game state as the list of game moves displayed in Chess Algebraic Notation, e.g., "16. Bc5 Rfe8+".  The user may, through the ChessGotoMove list GUI control, the game move location.  One ChessGotoMove keyboard command, h for help, displays list of commands.
+
+### ChessGameDisplay Menu Control
+- ChessGameDisplay controlls menus, buttons, title, board and chess pieces display and update.
+- 
+
