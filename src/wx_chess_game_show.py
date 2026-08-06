@@ -362,6 +362,8 @@ def do_looping():
     """ do game loop
     """
     wx.GetApp().Yield()     # Allow ChessGotoMove refresh
+    if cbd.chess_goto_move is not None:
+        cbd.update_chess_goto_move()
     if do_move() is None:
         display_board()
         restart_game()

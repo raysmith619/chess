@@ -2,9 +2,9 @@ import wx
 import wx.grid
 from itertools import zip_longest
 from graphics_braille.select_trace import SlTrace, SelectError
-
+from chess_error import ChessError
 from chess_move_notation import ChessMoveNotation
-
+from wx_chess_help import ChessHelp
 
 class ChessGotoMove(wx.Frame):
     def __init__(self,
@@ -24,6 +24,7 @@ class ChessGotoMove(wx.Frame):
         :pos:  x,y position default:(600,600)
         :size: (width,height) default:(200,300)
         """
+        self.help_win = None    # Help window, if opened
         self.chess_game_display = chess_game_display
         self.total_half_moves = 0 # Updated as found
         self.cur_half_moves = 0   # Current position, in half moves
@@ -86,6 +87,10 @@ class ChessGotoMove(wx.Frame):
                 else:
                     SelectError(f"Goto num {self.key_str} unrecognized")
                 return
+        if key == ord("H"):  # Help
+            self.help_win = ChessHelp()
+            return
+        
         if key in [wx.WXK_SPACE, 43]:       # 43 code for +                   
             self.set_half_move_relative(1)
             return
@@ -94,10 +99,24 @@ class ChessGotoMove(wx.Frame):
             self.set_half_move_relative(-1)
             return
         
-        
         elif chr(key) in "LS":
             self.chess_game_display.on_chess_goto_move_cmd(chr(key))
             return
+        
+        elif key == ord("P"):
+            SlTrace.lg(f"Current move: HM:{self.get_cur_half_moves()}"
+                       )
+            return
+        
+        elif key == ord("Q"):
+            self.chess_game_display.print_move_no()
+            return
+        
+        elif key == ord("X"):
+            SlTrace.lg("ChessGotoMove: exit")
+            self.chess_game_display.exit()
+            return
+        
         # Call event.Skip() so the grid still moves the selection/cursor
         event.Skip()
 
@@ -312,6 +331,8 @@ class ChessGotoMove(wx.Frame):
         
     def on_close_window(self, event):
         SlTrace.lg("wx_chess_goto_move.py: on_close_window")
+        if self.help_win is not None:
+            self.help_win.Destroy()
         self.Destroy()
 
     def DoSetGridCursor(self, irow, icol):
@@ -363,6 +384,13 @@ if __name__ == "__main__":
     """
     pgn_games = pgn.loads(demo_game_text)
     demo_game = pgn_games[0]
+        
+    def on_close_window(self, event):
+        SlTrace.lg("chess_goto_move.py:"
+                   " on_close_window")
+        if self.help_win is not None:
+            self.help_win.Destroy()
+        self.Destroy()
 
     
     def on_move_change(move_no=None, moved=None):
@@ -376,6 +404,25 @@ if __name__ == "__main__":
         SlTrace.lg(f"on_move_change: {move_no=} {moved=}")
     
     class ChessGameDisplay:
+        def on_chess_goto_move_cmd(self, ch):
+            """ Called on ChessGotoMove key press
+            :ch: character pressed
+            """
+            if ch == "L":
+                SlTrace.lg("ChessGameDisplay: loop_play")
+            elif ch == "S":
+                SlTrace.lg("ChessGameDisplay: stop")
+            elif ch == "Q":
+                SlTrace.lg("ChessGameDisplay: print current move")
+            elif ch == "X":
+                SlTrace.lg("ChessGameDisplay: exit")
+            else:
+                ChessError(f"on_chess_goto_cmd: unknown {ch = }")   
+
+        def print_move_no(self):
+            SlTrace.lg("ChessGameDisplay: print current move")  
+        
+                        
         def on_gtm_move_changed(self, move_no,
                                 moved):
             """ Called on chess goto move command

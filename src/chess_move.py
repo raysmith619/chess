@@ -42,6 +42,9 @@ class ChessMove:
             ret += " NO to_move update"  # update to_move after successful move
         return ret
 
+    def __repr__(self):
+        return self.__str__()
+
     def setup(self):
         """ Setup initial state
         which can be updated via decode...

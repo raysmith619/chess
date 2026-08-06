@@ -84,7 +84,7 @@ class ChessGameDisplay(wx.Frame):
         x_max=None, y_max=None,
         line_width=1, color="black",
         enable_mouse = False,
-        pgmExit=None,
+        pgm_exit=None,
         show_marked=False,
         drawing=False,
         silent=False,
@@ -173,7 +173,8 @@ class ChessGameDisplay(wx.Frame):
         self.errors_dir = errors_dir
         self.win_width = win_width
         self.win_height = win_height
-        self.pgmExit = pgmExit
+        self._pgm_exit = pgm_exit
+        self.grid_width = grid_width
         win_fract = False
         if x_min is None:
             x_min = 0. if win_fract else 0.
@@ -253,7 +254,7 @@ class ChessGameDisplay(wx.Frame):
         self.menus = self.fte.menus # Menus setup by fte
         self.chess_pan.set_key_press_proc(self.fte.key_press)
 
-        self.Bind(wx.EVT_KEY_DOWN, self.on_key_press, id=wx.ID_ANY)
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down, id=wx.ID_ANY)
         
 
         self.escape_pressed = False # True -> interrupt/flush
@@ -332,8 +333,8 @@ class ChessGameDisplay(wx.Frame):
         """
         if rc is None:
             rc = 0
-        if self.pgmExit is not None:
-            self.pgmExit()      # Use supplied pgmExit
+        if self._pgm_exit is not None:
+            self._pgm_exit()      # Use supplied pgm_exit
             
         SlTrace.lg("AudoDrawWindow.exit", "adw")
         SlTrace.onexit()    # Force logging quit
@@ -482,10 +483,10 @@ class ChessGameDisplay(wx.Frame):
         """ Called on ChessGotoMove key press
         :ch: character pressed
         """
-        if ch == "l":
-            self.display_dispatch("chess_loop") 
-        elif ch == "s":
-            self.display_dispatch("chess_stop")
+        if ch == "L":
+            self.display_dispatch("loop_play") 
+        elif ch == "S":
+            self.display_dispatch("stop")
         else:
             ChessError(f"on_chess_goto_cmd: unknown {ch = }") 
 
@@ -589,12 +590,14 @@ class ChessGameDisplay(wx.Frame):
         """
         self.display_dispatch(input="l")
 
-    def start_looping(self, loop_fun, interval=None):
+    def start_looping(self, loop_fun=None, interval=None):
         """ Start looping
         :loop_fun: loop function to call at interval
         :interval: interval (msec) to call loop_fun
             default: leave interval unchanged
         """
+        if loop_fun is None:
+            loop_fun = self.loop_call
         self.loop_fun = loop_fun
         if interval is not None:
             self.loop_interval = interval
@@ -674,12 +677,16 @@ class ChessGameDisplay(wx.Frame):
 
     """
     Capture std keyboard key presses
-    and redirect they to input
+    and pass to ChessGotoMove for processing
     """
-    def on_key_press(self, event):
-        keysym = event.keysym
-        SlTrace.lg(f"on_key_press:{keysym=}")
-        self.display_dispatch(cmd=keysym, input=keysym)
+    def on_key_down(self, event):
+        key = event.GetKeyCode()
+        SlTrace.lg(f"\n\nChessGameDisplayon_key_down:{key=}"
+                   f" {chr(key)=}")
+        if self.chess_goto_move is not None:
+            self.chess_goto_move.on_key_down
+
+        
 
 
     # Display Command Dispatch
@@ -744,8 +751,9 @@ class ChessGameDisplay(wx.Frame):
             return 0
         move_no = cm.get_move_no()
         to_move = cm.get_to_move()
+        moved = "white" if to_move == "black" else "black"
         nhalf = 2*(move_no-1)
-        if to_move == "black":
+        if moved == "white":
             nhalf += 1  # white has moved
         return nhalf
     
@@ -782,6 +790,8 @@ class ChessGameDisplay(wx.Frame):
             default: True - show pieces
         """
         self.Freeze()
+        if 0 and self.chess_goto_move is not None:
+            self.update_chess_goto_move()
         if title is None:
             title = self.title
         self.title = title
@@ -979,11 +989,25 @@ class ChessGameDisplay(wx.Frame):
         
         game_str = pgn.dumps(game)
         SlTrace.lg(f"{desc}\n{game_str}")
-                 
-    def win_size_event(self, e):
+    
+    def print_move_no(self, move_no=None):
+        """ Print current move number and moved color
+        :move_no: move number (after) 1 - after white or black first move
+        """
+        if move_no is None:
+            hm = self.get_cur_half_moves()
+            moved = "white" if (hm % 2) == 1 else "black"
+            move_no = (hm+1)//2            
+            bd = self.get_bd()
+            if bd is None:
+                return 0
+            cm = bd.get_move()
+            SlTrace.lg(f"HM: {hm} Move: {move_no} {moved} {cm=}")
+        
+    def win_size_event(self, e):  
         pass
     
-    def pgmExit(self):
+    def pgm_exit(self):
         code = 0
         self.exit(code) 
 

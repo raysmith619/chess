@@ -12,7 +12,8 @@ os.chdir(os.path.dirname(__file__))     # set this dir to be working dir
 pieces_dir = "../chess_pieces"
 im_size_x = 80
 im_size_y = im_size_x
-
+image_dict = {}        # global Images by piece K=white king, q=black queen
+                        # To keep images from being garbage collected, store them in a global dictionary
 class ChessPieceImages:
     name2ch_d = {"king":"k", "queen":"q", "rook":"r", "bishop":"b",
                "knight":"n", "pawn":"p"}
@@ -64,6 +65,8 @@ class ChessPieceImages:
             # Convert the image to a Tkinter-compatible format
             photo = ImageTk.PhotoImage(image)
             self.image_dict[piece_ch] = photo        # So image does not get lost
+            global image_dict
+            image_dict[piece_ch] = photo        # global So image does not get lost
 
     def get_pieces(self):
         """ Get all pieces
