@@ -1,4 +1,5 @@
-# wx_cgd_menus.py    09Mar2023  crs, Adapted from resource_lib/src/wx_adw_menus.py
+# wx_cgd_menus.py   06Aug2026  crs, remove adw references
+#                   09Mar2023  crs, Adapted from resource_lib/src/wx_adw_menus.py
 
 import wx
 
@@ -22,12 +23,11 @@ class MenuDisp:
 class CgdMenus:
     def __init__(self, fte, frame=None):
         """ Setup menus for ChessGameDisplay
-        Setup from front end, from which it gets access to adw
+        Setup from front end
         :fte: (CgdFrontEnd)
         :frame: frame containing menus
         """
         self.fte = fte
-        self.adw = fte.adw
         if frame is None:
             frame = wx.Frame(None)
         self.frame = frame
@@ -63,7 +63,6 @@ class CgdMenus:
     def menu_setup(self):
         """ Setup menu system
         """
-        adw = self.adw
         # creating a menu instance
         menubar = wx.MenuBar()
         menu_name_list = [
@@ -89,6 +88,10 @@ class CgdMenus:
         else name is a tuple with
             name = tuple[0]
             heading = tuple[1]
+            
+        "cmd" - action command
+                fte - link to front end which, in turn
+                      links to ChessGameDisplay
         """
         fte = self.fte
         SEP = {"sep": "sep"}    # Menu item separator
@@ -378,7 +381,7 @@ class CgdMenus:
 
     """
     ############################################################
-                       Links to fte (then to adw)
+                       Links to fte
     ############################################################
     """
 
@@ -392,7 +395,7 @@ if __name__ == "__main__":
             super().__init__(*args, **kwargs)
             
         def exit(self):
-            SlTrace.lg("adw.exit()")
+            SlTrace.lg("fte.exit()")
             sys.exit()
         
         def get_ix_min(self):

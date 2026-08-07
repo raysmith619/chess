@@ -186,6 +186,7 @@ class ChessGameDisplay(wx.Frame):
             y_max = 1. if win_fract else self.draw_height()
         # create the audio feedback window
         self.title = title
+        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down)
 
         
         #self.Show()
@@ -252,9 +253,9 @@ class ChessGameDisplay(wx.Frame):
         
         self.fte = CgdFrontEnd(self, title=title, silent=silent, color=color)
         self.menus = self.fte.menus # Menus setup by fte
-        self.chess_pan.set_key_press_proc(self.fte.key_press)
+        ###self.chess_pan.set_key_press_proc(self.fte.key_press)
 
-        self.Bind(wx.EVT_KEY_DOWN, self.on_key_down, id=wx.ID_ANY)
+        ###self.Bind(wx.EVT_KEY_DOWN, self.on_key_down, id=wx.ID_ANY)
         
 
         self.escape_pressed = False # True -> interrupt/flush
@@ -672,7 +673,7 @@ class ChessGameDisplay(wx.Frame):
         :title: title text
         """
         self.SetTitle(title)
-        self.txt_game_move.SetLabel(" "*20 + title)
+        self.txt_game_move.SetLabel(title)
         self.txt_game_move.Refresh()
 
     """
@@ -684,7 +685,7 @@ class ChessGameDisplay(wx.Frame):
         SlTrace.lg(f"\n\nChessGameDisplayon_key_down:{key=}"
                    f" {chr(key)=}")
         if self.chess_goto_move is not None:
-            self.chess_goto_move.on_key_down
+            self.chess_goto_move.on_key_down(event)
 
         
 
@@ -775,9 +776,9 @@ class ChessGameDisplay(wx.Frame):
             self.chess_goto_move = ChessGotoMove(
                 self,
                 game=self.sel_game,
-                on_move_change=self.on_move_change)
+                on_move_change=self.cgm_on_move_change)
            
-    def update(self):
+    def update(self, full=True):
         """ Do update, allowing graphics to update
         """
         ### TBD    self.mw.update()
