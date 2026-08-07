@@ -473,6 +473,83 @@ While I have attempted to continue development of both paths, I have moved most 
 chess_game_show.py contains user control commands display the game.  These commands are sent to a ChessGameDisplay object(chess_game_display.py/wx_chess_game_display.py) which generates and modifies the status of the game display.  ChessGameDisplay invokes and communicates with ChessGotoMove(wx_chess_goto_move.py) which displays the game state as the list of game moves displayed in Chess Algebraic Notation, e.g., "16. Bc5 Rfe8+".  The user may, through the ChessGotoMove list GUI control, the game move location.  One ChessGotoMove keyboard command, h for help, displays list of commands.
 
 ### ChessGameDisplay Menu Control
-- ChessGameDisplay controlls menus, buttons, title, board and chess pieces display and update.
-- 
+- ChessGameDisplay controls menus, buttons, title, board and chess pieces display and update.
+- CgdFrontEnd(cgd_front_end.py/wx_cgd_front_end.py) - interface between ChessGameDisplay and CgdMenus
+- CgdMenus(cgd_menus.py/wx_cgd_menus.py) - connects Menu selection and actions
+   * Top Menus
+     ```
+        # Settings for each menu heading    
+        menus_settings = {
+            "file" : {"heading" : "File"},
+            "scanning" : {"heading" : "S&canning"},
+            "settings" : {"heading" : "Settings"},
+            "game" : {"heading" : "Game"},
+            "enter moves" : {"heading" : "Enter Moves"},
+            "auxiliary" : {"heading" : "Auxiliary"},
+        }
+       ```
+      
+   * Menus Items
+        ```
+        """ menus_items defines all the menu drop downs
+        SEP - specifies a separator line
+        
+        "name" specifies name and heading
+        if value is a str the heading == name
+        else name is a tuple with
+            name = tuple[0]
+            heading = tuple[1]
+            
+        "cmd" - action command
+                fte - link to CgdFrontend which, in turn
+                      links to ChessGameDisplay
+        """
+        fte = self.fte
+        SEP = {"sep": "sep"}    # Menu item separator
 
+          
+        menus_items = {
+            "file":
+                [
+                {"name" : "Open",  "cmd" : fte.cmd_file_open},
+                {"name" : "Save",  "cmd" : fte.cmd_file_save},
+                SEP,
+                {"name" : "Log",   "cmd" : fte.cmd_file_log_file},
+                {"name" : "Properties",   "cmd" : fte.cmd_file_properties_file},
+                SEP,
+                {"name" : "E&xit",  "cmd" : fte.cmd_file_exit},
+                ],
+            "scanning" :
+                [
+                {"name" : "Help",    "cmd" : fte.scan_help_cmd},
+                {"name" : "Files",   "cmd" : fte.cmd_scanning_files},
+                {"name" : "Game &S", "cmd" : fte.setting_game_start_cmd},
+                {"name" : "Game &E", "cmd" : fte.setting_game_end_cmd},
+                ],
+
+            "settings" :
+                [
+                {"name" : ("hd","Window"), "cmd" : fte.settings_window_cmd},
+               ],
+            "game" :
+                [
+                {"name" : "Help", "cmd" : fte.game_help_cmd},
+                {"name" : "New Game", "cmd" : fte.new_window_cmd},
+                {"name" : "Enter FEN", "cmd" : fte.enter_fen_cmd},
+                {"name" : "Goto Move", "cmd" : fte.goto_move_cmd},
+                {"name" : "Print FEN", "cmd" : fte.print_fen_cmd},
+                {"name" : "P&rint Game", "cmd" : fte.print_game_cmd},
+                ],
+            "enter moves" :
+                [
+                {"name" : "Help", "cmd" : fte.enter_moves_help_cmd},
+                {"name" : "Enter Moves", "cmd" : fte.enter_moves_cmd},
+                ],
+            "auxiliary" :
+                [
+                {"name" : "Trace", "cmd" : fte.trace_menu},
+                ],
+            
+        }
+
+        ```
