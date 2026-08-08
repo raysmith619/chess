@@ -332,7 +332,10 @@ class ChessGotoMove(wx.Frame):
     def on_close_window(self, event):
         SlTrace.lg("wx_chess_goto_move.py: on_close_window")
         if self.help_win is not None:
-            self.help_win.Destroy()
+            SlTrace.lg("wx_chess_goto_move.py calling"
+                       " help_win.Close")
+            self.chess_goto_move is not None
+            self.help_win.Close()
         self.Destroy()
 
     def DoSetGridCursor(self, irow, icol):
@@ -388,6 +391,7 @@ if __name__ == "__main__":
     def on_close_window(self, event):
         SlTrace.lg("chess_goto_move.py:"
                    " on_close_window")
+        self.chess_game_display.chess_goto_move = None
         if self.help_win is not None:
             self.help_win.Destroy()
         self.Destroy()

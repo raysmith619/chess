@@ -96,7 +96,7 @@ class SelectionOK(wx.Frame):
 if __name__ == '__main__':
     import os
     
-    from select_trace import SlTrace
+    from graphics_braille.select_trace import SlTrace
     from chess_game_data_source import ChessGameDataSource
     
     os.chdir(os.path.dirname(__file__))

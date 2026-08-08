@@ -129,8 +129,8 @@ quit_on_fail = args.quit_on_fail
 
 speaker_control = None      # Set up for speaker
 # Setup centralized speaker control
-if __name__ == '__main__':
-    mp.freeze_support()
+###if __name__ == '__main__':
+    ###mp.freeze_support()
     ###speaker_control = SpeakerControlLocal()   # centralized access to sound/speech engine
 
 # Support board/display access
@@ -146,11 +146,13 @@ def setup_display(game):
     """
     global cbs, cbd, move_spec_list
     SlTrace.lg(f"setup_display: {game=}")
+    if cbd is not None:
+        cbd.on_close_window()   # Remove existing display
     cb = Chessboard()           # For inital sizes
     cbs = ChessboardStack()
     cbs.push_bd(cb)
     cb.standard_setup()         # Starting position
-    cbd = ChessGameDisplay(cbs, title="Begin Game",
+    cbd = ChessGameDisplay(cbs, title="-",
                         win_width=width, win_height=height,
                         speaker_control=speaker_control)
     cbd.setup_chess_goto_move(game=game)
@@ -172,7 +174,8 @@ def setup_board(game):
     cbd.sel_game = game
     current_game = game
     current_move_index = 0
-    cbd.restart()
+    ###cbd.restart()
+    restart_game()
     
 def get_move_desc():
     """ Get move descriptor / title
@@ -458,20 +461,23 @@ def get_file_games(cmd, *args, **kwargs):
     """
     global game_desc
     global move_spec_list
-    
     selection = kwargs["selection"]
     index = selection[0]
     game = selection[-1]
+    SlTrace.lg(f"get_file_games: {game=} {index=}")
     if game is None:
-        return          # None to have
+        return None         # None to have
     
     short_desc = (f"{game.white} vs. {game.black}"
                 f" {game.event} {game.date}")
+    SlTrace.lg(f"get_file_games: {short_desc=} {game=}")
     
     stop_loop()     # Stop action incase going
-    restart_game()
     game_desc = short_desc
+    setup_display(game)
     setup_board(game)
+    cbd.set_cmd(display_cmd_proc)    
+    return None
 
 def goto_move_cmd(move_no, moved="white"):
     """ Go to move (after) and set display

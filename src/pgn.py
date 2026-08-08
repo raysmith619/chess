@@ -77,7 +77,11 @@ class PGNGame(object):
         return dumps(self)
 
     def __repr__(self):
-        return '<PGNGame "%s" vs "%s">' % (self.white, self.black)
+        st = f"PGNGame {self.white} vs {self.black}"
+        if len(self.moves) >= 2:
+            st += f"  1. {self.moves[0]} {self.moves[1]}"
+            st += f" ... {self.result}"
+        return st
 
 class GameStringIterator(object):
     """

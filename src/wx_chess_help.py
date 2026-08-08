@@ -2,7 +2,7 @@
 """ Help for wx_chess 
 """
 import wx
-
+from graphics_braille.select_trace import SlTrace
 
 class ChessHelp(wx.Frame):
     def __init__(self, on_key_down=None):
@@ -30,6 +30,7 @@ class ChessHelp(wx.Frame):
         panel.SetSizer(main_sizer)
         self.Bind(wx.EVT_CHAR_HOOK,
                             self.on_key_down, id=wx.ID_ANY)
+        self.Bind(wx.EVT_CLOSE, self.on_window_close)
         help_text = r"""Chess Display Help
     Keyboard Shortcuts:
         SPACE - goto to next move
@@ -67,7 +68,9 @@ class ChessHelp(wx.Frame):
         # Always allow the event to propagate so child widgets function normally
         event.Skip()
 
-
+    def on_window_close(self,event=None):
+        SlTrace.lg("wx_chess_help.on_window_close")
+        self.Destroy()
     
 
         

@@ -278,8 +278,9 @@ class ChessGameDisplay(wx.Frame):
         if move_no == 0:
             SlTrace.lg("Beginning")
         SlTrace.lg(f"{move_no=} {moved=}")
-        SlTrace.lg(f"ChessGameDisplay.on_move_change("
+        SlTrace.lg(f"ChessGameDisplay.cgm_on_move_change("
                    f"{move_no=}, {moved=}")
+        SlTrace.lg(f'self.display_dispatch("set_move_no", {move_no}, moved={moved})')
         self.display_dispatch("set_move_no", move_no, moved=moved)
         
     def restart(self):
@@ -288,7 +289,8 @@ class ChessGameDisplay(wx.Frame):
         cb = Chessboard()
         self.cbs = ChessboardStack()
         self.cbs.push_bd(cb)
-
+        # Setup ChessGotoMove
+        self.setup_chess_goto_move(force=True)
 
     """ 
     Menu top level functions
@@ -698,9 +700,12 @@ class ChessGameDisplay(wx.Frame):
         :args: positional args,
         :kwargs: keyword args
         """
-        if self.on_cmd is not None:
-            SlTrace.lg(f"on_cmd({cmd=}, {args=}, {kwargs=})")
-            self.on_cmd(self, cmd, *args, **kwargs)
+        if self.on_cmd is None:
+            SlTrace.lg("display_dispatch on_cmd is None")
+            return
+        
+        SlTrace.lg(f"on_cmd({cmd=}, {args=}, {kwargs=})")
+        self.on_cmd(self, cmd, *args, **kwargs)
 
 
     def mainloop(self):
@@ -758,15 +763,25 @@ class ChessGameDisplay(wx.Frame):
             nhalf += 1  # white has moved
         return nhalf
     
-    def setup_chess_goto_move(self, game=None):
+    def setup_chess_goto_move(self, game=None,
+                force=False):
         """ Setup goto_move for game change
-        :game: PGN notation
+        :game: PGN notation default: self.sel_game
+        :force: True - force new setup
+                default: False no force
         """
+        if game is None:
+            game = self.sel_game
+        new_setup = False
         if self.chess_goto_move is None:
+            new_setup = True
             self.chess_goto_move = ChessGotoMove(
                 self,
                 game=game,
                 on_move_change=self.cgm_on_move_change)
+        if new_setup:
+            return
+        
         gt_total_hmove = self.chess_goto_move.get_total_half_moves()
         bd_cur_hmove = self.get_cur_half_moves()
         if bd_cur_hmove > gt_total_hmove:
@@ -775,7 +790,7 @@ class ChessGameDisplay(wx.Frame):
                 self.chess_goto_move = None
             self.chess_goto_move = ChessGotoMove(
                 self,
-                game=self.sel_game,
+                game=game,
                 on_move_change=self.cgm_on_move_change)
            
     def update(self, full=True):
@@ -1288,11 +1303,11 @@ class ChessGameDisplay(wx.Frame):
         """
         self.fte.win_print(args=args, dup_stdout=dup_stdout, kwargs=kwargs)
         
-    def on_close_window(self, event):
+    def on_close_window(self, event=None):
         SlTrace.lg("wx_chess_game_display"
                    " on_close_window")
         if self.chess_goto_move is not None:
-            self.chess_goto_move.Destroy()
+            self.chess_goto_move.Close()
         self.Destroy()
 
     #############################################################
