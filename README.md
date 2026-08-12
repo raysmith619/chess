@@ -553,3 +553,21 @@ chess_game_show.py contains user control commands display the game.  These comma
         }
 
         ```
+### File Scanning
+File scanning is the process of automatically processing a number of chess (PNG) files,
+displaying each of the games found.  We fold each game in to the wx_chess_game_show.py
+user based processing.  The control flow is as follows:
+#### File Scanning functional flow
+ * user-command event from ChessGameDisplay Menu: Scanning-->Files
+   - cmd_scanning_files()
+     - is_scanning = True - Set scanning files mode
+     - display_dispatch("loop_play") - send looping command to wx_chess_game_show
+ * wx_chess_game_show.py - user command parsing, game control
+    - display_cmd_proc(cbdisp, cmd, ...) - parse/dispatch commands
+    - loop_game()
+        - ChessGameDisplay.start_looping(do_looping)
+           - is_looping = True  - Set game-move looping
+           - loop_fun - store processing function for each move
+           - make first loop call 
+ * ChessGameDisplay - Board Display, Reporting fields
+ * ChessGotoMove - Game History Display
