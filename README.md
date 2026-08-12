@@ -439,7 +439,7 @@ class ChessPieceMovement:
 ```
 
 # File Summary
-  - chess_board_display - Chessb - oardDisplay - provides a graphical view of the chessboard
+  - chess_board_display - ChessboardDisplay - provides a graphical view of the chessboard
   - chessboard.py - Chessboard - provides support of chess state manipulations
   - chess_save_unit.py - ChessSaveUnit - contents indicating a chess move, with the primary
   supporting undo
