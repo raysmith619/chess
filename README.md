@@ -1,12 +1,27 @@
 # Chess notes
 ## Introduction
 I started this work to explore working with chess in the programming world.  My intention was not to compete
-with the major chess programs available. My inspiration was my friend John's Java Script program to display some simple
+with the major chess programs available. Please consider my program as a chess game viewer, similar to a video player to review
+one's own games or those of greats.  My inspiration was my friend John's Java Script program to display some simple
 chess checkmate examples.  I'm still humbled by the fact that his whole program is executable directly from my email!
 My first progress was the display of chessboard positions.  The input consists of the, incomplete, FEN chess notation.  Showing that
 "laziness is the mother of invention", I added support for a few pieces on the board, e.g., ':Kc1Qe1kh7 w' for white king at c1,
 white queen at e1, black king at h7 with white to move.
 
+## Operation
+The code is in the /src directory.  We require the pip install of my graphics_braille module. 
+To run the tkinter version use the following, from the /src directory:
+```
+py chess_game_show.py
+```
+To run the wxpython version of the program use the following command:
+```
+py wx_chess_central_show.py
+```
+Because of some hard to address issues, there are a number of errors during startup, which are mostly benign.
+ I confess that I've not pushed my latest updates of graphics_braille to pypi.  My latest listing is at the end of
+ this document.
+ 
 ## Goals
 My intention is to develop some tools to interpret, execute, and display chess games/situations.  While not striving to produce
 chess machinery, I hope to experiment a lot.  With the potential of producing serious chess machinery
@@ -16,7 +31,7 @@ similar to my work in
 
 
 ### Some views
-Current display code uses Python's tkinter module.  In the future I plan to migrate
+The first display code uses Python's tkinter module, which still works in a reduced capacity.  I have migrated
 to wxPython, mainly because wxPython is more compatible with todays screen readers
 such as JAWS and NVDIA.  My guess is that tkinter predates the modern APIs that aid
 screen readers and other accessibility code which benefits the blind.
@@ -466,6 +481,12 @@ Provides logging, tracing, properties support.
 ## Program Structure / Design Considerations
 Somewhat midway in this program's evolution I created two paths - 1st based on Tkinter for GUI, 2nd based on wxPython.  The Tkinter route was primarily because Tkinter is well known and is provided in the Python installation.  The wxPython route was based on the fact that Tkinter does not provide easy access to screen readers which facilitate access by the blind.  I wanted to progress simultaneously on both paths.  My approach has been to create, where the wxPython path required differences, a file with a "wx_" prefix.  An example is that Tkinter main program is "chess_game_game_show.py" while the wxPython main program file is "wx_chess_game_show.py".
 While I have attempted to continue development of both paths, I have moved most development towards wxPython.  Some features, notably the ChessGotoMove display/control through a game notation frame is only in the wxPython path.
+### Command distribution
+Using CentralData (central_data.py) to centralize commands and game state.
+Requests originate from (ChessGameDisplay (wx_chess_game_display.py) and
+ChessGotoMove) are directed to CentralData and then
+are sent to ChessGameDisplay and/or ChessGotoMove.
+
 #### Latest Game Display Example
 ![Including GotoMove](Docs/Chess_Display_with_Goto_plus_Help.png)
 
@@ -571,3 +592,132 @@ user based processing.  The control flow is as follows:
            - make first loop call 
  * ChessGameDisplay - Board Display, Reporting fields
  * ChessGotoMove - Game History Display
+
+# Existing Issues
+## Listing of wx_chess_central_show.py
+Some of issues are with my problems with the usage of the text-to-speech module pyttsx4 which I have used in my graphics_braille module.
+
+```
+PS C:\Users\raysm\vscode\chess\src> (Set-ExecutionPolicy -Scope Process -ExecutionPolicy RemoteSigned) ; (& c:\Users\raysm\vscode\chess\src\.venv\Scripts\Activate.ps1)
+(.venv) PS C:\Users\raysm\vscode\chess\src> py .\wx_chess_central_show.py                                                         
+ 20260821_215143_145 Trace levels from properties file C:\Users\raysm\vscode\chess\wx_chess_central_show.properties
+ 20260821_215143_146 Creating Log File Name: C:\Users\raysm\vscode\chess\log\wx_chess_central_show_20260821_215143.sllog
+ PGNGame Donald Byrne vs Robert James Fischer  1. Nf3 Nf6 ... 0-1
+ 
+moves:
+  Nf3 Nf6 c4 g6 Nc3 Bg7 d4 O-O Bf4 d5 Qb3
+ dxc4 Qxc4 c6 e4 Nbd7 Rd1 Nb6 Qc5 Bg4 Bg5
+ Na4 Qa3 Nxc3 bxc3 Nxe4 Bxe7 Qb6 Bc4 Nxc3
+ Bc5 Rfe8+ Kf1 Be6 Bxb6 Bxc4+ Kg1 Ne2+ Kf1
+ Nxd4+ Kg1 Ne2+ Kf1 Nc3+ Kg1 axb6 Qb4 Ra4
+ Qxb6 Nxd1 h3 Rxa2 Kh2 Nxf2 Re1 Rxe1 Qd8+
+ Bf8 Nxe1 Bd5 Nf3 Ne4 Qb8 b5 h4 h5 Ne5 Kg7
+ Kg1 Bc5+ Kf1 Ng3+ Ke1 Bb4+ Kd1 Bb3+ Kc1
+ Ne2+ Kb1 Nc3+ Kc1 Rc2# 0-1
+ setup_display: game=PGNGame Donald Byrne vs Robert James Fischer  1. Nf3 Nf6 ... 0-1
+ Creating own SpeakerControl
+ set_moves: game=PGNGame Donald Byrne vs Robert James Fischer  1. Nf3 Nf6 ... 0-1 moves=None
+ num_pair=42
+ FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+
+ 
+Begin Game   Donald Byrne vs. Robert James Fischer Third Rosenwald Trophy 1956.10.17
+8: ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜ 
+7: ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟ 
+6: □  :  □  :  □  :  □  : 
+5: :  □  :  □  :  □  :  □ 
+4: □  :  □  :  □  :  □  : 
+3: :  □  :  □  :  □  :  □ 
+2: ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙ 
+1: ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖ 
+--------------------------
+   a  b  c  d  e  f  g  h
+ FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+
+ ccs: cmd_goto_move(move_no =0, moved='white')
+ cmd_goto_move: move_no=0, moved='white', move_index=0
+ 
+Begin Game   Donald Byrne vs. Robert James Fischer Third Rosenwald Trophy 1956.10.17
+8: ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜ 
+7: ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟ 
+6: □  :  □  :  □  :  □  : 
+5: :  □  :  □  :  □  :  □ 
+4: □  :  □  :  □  :  □  : 
+3: :  □  :  □  :  □  :  □ 
+2: ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙ 
+1: ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖ 
+--------------------------
+   a  b  c  d  e  f  g  h
+ FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+
+ 
+Begin Game   Donald Byrne vs. Robert James Fischer Third Rosenwald Trophy 1956.10.17
+8: ♜  ♞  ♝  ♛  ♚  ♝  ♞  ♜ 
+7: ♟  ♟  ♟  ♟  ♟  ♟  ♟  ♟ 
+6: □  :  □  :  □  :  □  : 
+5: :  □  :  □  :  □  :  □ 
+4: □  :  □  :  □  :  □  : 
+3: :  □  :  □  :  □  :  □ 
+2: ♙  ♙  ♙  ♙  ♙  ♙  ♙  ♙ 
+1: ♖  ♘  ♗  ♕  ♔  ♗  ♘  ♖ 
+--------------------------
+   a  b  c  d  e  f  g  h
+ FEN: rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1
+
+ set_half_move:half_move=0, beginning  hm =0
+     irow=0, icol=0, hm=0
+ irow=0 icol=0
+ DoSetGridCursor(irow=0, icol=0)
+ 20260821_215144_617 Trace levels from properties file C:\Users\raysm\vscode\chess\wx_chess_central_show.properties
+ 20260821_215144_618 Creating Log File Name: C:\Users\raysm\vscode\chess\log\wx_chess_central_show_20260821_215144.sllog
+Process Process-1:
+Traceback (most recent call last):
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pyttsx4\__init__.py", line 20, in init
+    eng = _activeEngines[driverName]
+          ~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\weakref.py", line 136, in __getitem__
+    o = self.data[key]()
+        ~~~~~~~~~^^^^^
+KeyError: None
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 313, in _bootstrap
+    self.run()
+    ~~~~~~~~^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\multiprocessing\process.py", line 108, in run
+    self._target(*self._args, **self._kwargs)
+    ~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\graphics_braille\pyttsx_proc.py", line 35, in pyt_proc_proc
+    self.engine = pyttsxN.init()
+                  ~~~~~~~~~~~~^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pyttsx4\__init__.py", line 22, in init
+    eng = Engine(driverName, debug)
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pyttsx4\engine.py", line 30, in __init__
+    self.proxy = driver.DriverProxy(weakref.proxy(self), driverName, debug)
+                 ~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pyttsx4\driver.py", line 50, in __init__
+    self._module = importlib.import_module(name)
+                   ~~~~~~~~~~~~~~~~~~~~~~~^^^^^^
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\importlib\__init__.py", line 88, in import_module
+    return _bootstrap._gcd_import(name[level:], package, level)
+           ~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "<frozen importlib._bootstrap>", line 1387, in _gcd_import
+  File "<frozen importlib._bootstrap>", line 1360, in _find_and_load
+  File "<frozen importlib._bootstrap>", line 1331, in _find_and_load_unlocked
+  File "<frozen importlib._bootstrap>", line 935, in _load_unlocked
+  File "<frozen importlib._bootstrap_external>", line 1027, in exec_module
+  File "<frozen importlib._bootstrap>", line 488, in _call_with_frames_removed
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pyttsx4\drivers\sapi5.py", line 11, in <module>
+    import pythoncom
+  File "C:\Users\Owner\AppData\Local\Programs\Python\Python313\Lib\site-packages\pythoncom.py", line 2, in <module>
+    import pywintypes
+ModuleNotFoundError: No module named 'pywintypes'
+onexit
+ Program duration: 0.381 sec
+Executing save_propfile
+ Saving properties file  C:\Users\raysm\vscode\chess\wx_chess_central_show.properties  20260821_215144
+ 20260821_215144_765 Closing log file C:\Users\raysm\vscode\chess\log\wx_chess_central_show_20260821_215144.sllog
+
+```
