@@ -100,7 +100,10 @@ class ChessMove:
         
         self.cmn.make_move_update()     # Update parse results
         return self.err
-    
+
+    def get_move_desc(self):
+        return self.spec
+        
     def get_start_piece(self, start_str, to_move=None):
         """ Determine starting piece, given spec string
         :start_str: beginning of specification less destination
@@ -594,7 +597,7 @@ if __name__ == "__main__":
     37.Ke1 Bb4+ 38.Kd1 Bb3+ 39.Kc1 Ne2+ 40.Kb1
     Nc3+ 41.Kc1 Rc2# 0-1
     """
-    move_specs = CMN.game_to_specs(moves) 
+    move_specs = ChessMoveNotation.game_to_specs(moves) 
     for move_spec in move_specs:
         cm = ChessMove(cb)
         move_no = cm.get_move_no()

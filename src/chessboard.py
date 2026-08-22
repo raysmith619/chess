@@ -62,6 +62,7 @@ class Chessboard:
         self.clear_assert_fail()
         self.set_assert_fail_max(10)
         self.cpm = ChessPieceMovement(self)
+        self.err_msg = None         # set to error message
         err = self.setup_board(pieces=pieces,
                          standard_setup=standard_setup)
         if err:
@@ -229,6 +230,10 @@ class Chessboard:
             default: self.err - current parsing error message
         :returns: msg
         """
+        if msg is not None and msg != "":
+            SlTrace.lg(f"ERROR: {msg} {self.cm}")
+            self.err_msg = msg
+            
         self.assert_fail_report(err=msg)
         
         return msg
@@ -956,6 +961,7 @@ class Chessboard:
                 prev_orig2_sq_moved = self.set_as_moved(orig2_sq)
             orig_piece = self.get_piece(sq=orig_sq)
             if orig_piece is None:
+                SlTrace.lg(f"orig_piece is None: bd: {self.board_to_fen_str()}")
                 return self.err_add(f"make_move: orig_sq({orig_sq} is empty)")
             
             orig_piece_type = self.piece_to_type(orig_piece)

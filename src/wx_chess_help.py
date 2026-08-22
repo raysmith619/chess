@@ -35,11 +35,10 @@ class ChessHelp(wx.Frame):
     Keyboard Shortcuts:
         SPACE - goto to next move
         BACKSPACE - goto to previous move
-        \d+[WB]?    goto to move number, white or black
+        <number> [W or B] [G or Return]    goto to move number, white or black
         L - loop moves
         S - stop looping moves
-        F - freeze chess display
-        T - thaw chess display
+        F - Flip move back and forth
         P - print current move per ChessGotoMove
         Q - print current move per ChessGameDisplay
         X - quit chess display

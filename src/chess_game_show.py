@@ -299,7 +299,10 @@ def do_looping():
     """
     if do_move() is None:
         display_board()
-        restart_game()
+        if cbd.is_scanning:
+            loop_game()
+        else:    
+            restart_game()
         return
 
     display_board()

@@ -430,97 +430,97 @@ class CgdFrontEnd:
 
     """ Scanning files """        
 
-    def scan_help_cmd(self, _=None):
+    def cmd_scan_help(self, _=None):
         """ Help for Alt-s commands
         """
         """ Help - list command (Alt-s) commands
         """
-        self.menus.scan_help_cmd()  # *** Placed in menus
+        self.menus.cmd_scan_help()  # *** Placed in menus
 
-    def setting_game_start_cmd(self, _=None):
-        self.cgd.setting_game_start_cmd()
+    def cmd_setting_game_start(self, _=None):
+        self.cgd.cmd_setting_game_start()
 
-    def setting_game_end_cmd(self, _=None):
-        self.cgd.setting_game_end_cmd()
+    def cmd_setting_game_end(self, _=None):
+        self.cgd.cmd_setting_game_end()
 
         
     """ Settings """
-    def settings_window_cmd(self,_=None):
-        self.cgd.settings_window_cmd()
+    def cmd_settings_window(self,_=None):
+        self.cgd.cmd_settings_window()
         
-    def setting_print_bd_cmd(self,_=None):
-        self.cgd.setting_print_bd_cmd()
+    def cmd_setting_print_bd(self,_=None):
+        self.cgd.cmd_setting_print_bd()
         
-    def setting_print_bd_no_cmd(self,_=None):
-        self.cgd.setting_print_bd_no_cmd()
+    def cmd_setting_print_bd_no(self,_=None):
+        self.cgd.cmd_setting_print_bd_no()
         
-    def setting_print_fen_cmd(self,_=None):
-        self.cgd.setting_print_fen_cmd()
+    def setting_cmd_print_fend(self,_=None):
+        self.cgd.cmd_setting__print_fend()
             
-    def setting_print_fen_no_cmd(self,_=None):
-        self.cgd.setting_print_fen_no_cmd()
+    def cmd_setting_print_fen_no(self,_=None):
+        self.cgd.cmd_setting_print_fen_no()
             
-    def setting_move_display_cmd(self,_=None):
-        self.cgd.setting_move_display_cmd()
+    def cmd_setting_move_display(self,_=None):
+        self.cgd.cmd_setting_move_display()
        
-    def setting_move_display_no_cmd(self,_=None):
-        self.cgd.setting_move_display_no_cmd()
+    def cmd_setting_move_display_no(self,_=None):
+        self.cgd.cmd_setting_move_display_no()
             
-    def setting_final_position_display_cmd(self,_=None):
-        self.cgd.setting_final_position_display_cmd()
+    def cmd_setting_final_position_display(self,_=None):
+        self.cgd.cmd_setting_final_position_display()
             
-    def setting_final_position_display_no_cmd(self,_=None):
-        self.cgd.setting_final_position_display_no_cmd()
+    def cmd_setting_final_position_display_no(self,_=None):
+        self.cgd.cmd_setting_final_position_display_no()
 
             
-    def setting_loop_interval_cmd(self,_=None):
-        self.cgd.setting_loop_interval_cmd()
+    def cmd_setting_loop_interval(self,_=None):
+        self.cgd.cmd_setting_loop_interval()
             
-    def setting_stop_on_error_cmd(self,_=None):
-        self.cgd.setting_stop_on_error_cmd()
+    def cmd_setting_stop_on_error(self,_=None):
+        self.cgd.cmd_setting_stop_on_error()
             
-    def setting_no_stop_on_error_cmd(self,_=None):
-        self.cgd.setting_no_stop_on_error_cmd()
+    def cmd_setting_no_stop_on_error(self,_=None):
+        self.cgd.cmd_setting_no_stop_on_error()
 
 
-    def settings_help_cmd(self,_=None):
-        self.cgd.settings_help_cmd()
+    def cmd_settings_help(self,_=None):
+        self.cgd.cmd_settings_help()
 
 
     """
     Game
     """
 
-    def game_help_cmd(self, _=None):
+    def cmd_game_help(self, _=None):
         """ Help for Alt-g commands
         """
         """ Help - list command (Alt-m) commands
         """
-        self.menus.game_help_cmd()  # *** placed in menus
+        self.menus.cmd_game_help()  # *** placed in menus
         
-    def new_window_cmd(self,_=None):
-        self.cgd.new_window_cmd()
+    def cmd_new_window(self,_=None):
+        self.cgd.cmd_new_window()
         
-    def enter_fen_cmd(self,_=None):
-        self.cgd.enter_fen_cmd()
+    def cmd_enter_fen(self,_=None):
+        self.cgd.cmd_enter_fen()
         
-    def goto_move_cmd(self,_=None):
-        self.cgd.goto_move_cmd()
+    def cmd_goto_move(self,_=None):
+        self.cgd.cmd_goto_move()
         
-    def print_fen_cmd(self,_=None):
-        self.cgd.print_fen_cmd()
+    def cmd_print_fen(self,_=None):
+        self.cgd.cmd_print_fen()
         
-    def print_game_cmd(self,_=None):
-        self.cgd.print_game_cmd()
+    def cmd_print_game(self,_=None):
+        self.cgd.cmd_print_game()
         
     """ 
     Enter Moves
     """
-    def enter_moves_help_cmd(self,_=None):
-        self.cgd.enter_moves_help_cmd()
+    def cmd_enter_moves_help(self,_=None):
+        self.cgd.cmd_enter_moves_help()
         
-    def enter_moves_cmd(self,_=None):
-        self.cgd.enter_moves_cmd()
+    def cmd_enter_moves(self,_=None):
+        self.cgd.cmd_enter_moves()
 
 
     def cmd_scanning_files(self, e=None):

@@ -109,29 +109,29 @@ class CgdMenus:
                 ],
             "scanning" :
                 [
-                {"name" : "Help",    "cmd" : fte.scan_help_cmd},
+                {"name" : "Help",    "cmd" : fte.cmd_scan_help},
                 {"name" : "Files",   "cmd" : fte.cmd_scanning_files},
-                {"name" : "Game &S", "cmd" : fte.setting_game_start_cmd},
-                {"name" : "Game &E", "cmd" : fte.setting_game_end_cmd},
+                {"name" : "Game &S", "cmd" : fte.cmd_setting_game_start},
+                {"name" : "Game &E", "cmd" : fte.cmd_setting_game_end},
                 ],
 
             "settings" :
                 [
-                {"name" : ("hd","Window"), "cmd" : fte.settings_window_cmd},
+                {"name" : ("hd","Window"), "cmd" : fte.cmd_settings_window},
                ],
             "game" :
                 [
-                {"name" : "Help", "cmd" : fte.game_help_cmd},
-                {"name" : "New Game", "cmd" : fte.new_window_cmd},
-                {"name" : "Enter FEN", "cmd" : fte.enter_fen_cmd},
-                {"name" : "Goto Move", "cmd" : fte.goto_move_cmd},
-                {"name" : "Print FEN", "cmd" : fte.print_fen_cmd},
-                {"name" : "P&rint Game", "cmd" : fte.print_game_cmd},
+                {"name" : "Help", "cmd" : fte.cmd_game_help},
+                {"name" : "New Game", "cmd" : fte.cmd_new_window},
+                {"name" : "Enter FEN", "cmd" : fte.cmd_enter_fen},
+                {"name" : "Goto Move", "cmd" : fte.cmd_goto_move},
+                {"name" : "Print FEN", "cmd" : fte.cmd_print_fen},
+                {"name" : "P&rint Game", "cmd" : fte.cmd_print_game},
                 ],
             "enter moves" :
                 [
-                {"name" : "Help", "cmd" : fte.enter_moves_help_cmd},
-                {"name" : "Enter Moves", "cmd" : fte.enter_moves_cmd},
+                {"name" : "Help", "cmd" : fte.cmd_enter_moves_help},
+                {"name" : "Enter Moves", "cmd" : fte.cmd_enter_moves},
                 ],
             "auxiliary" :
                 [
@@ -139,28 +139,6 @@ class CgdMenus:
                 ],
             
         }
-
-        """ Old Settings menu items replaced by ChessSettingsFrame
-                        #         list - only using second - heading
-                {"name" : ("help","Help"), "cmd" : self.settings_help_cmd},
-                {"name" : ("hd","&Boards Print"), "cmd" : fte.setting_print_bd_cmd},
-                {"name" : ("hd","B&oards No Print"), "cmd" : fte.setting_print_bd_no_cmd},
-
-                {"name" : ("hd","&Move Display"), "cmd" : fte.setting_move_display_cmd},
-                {"name" : ("hd","Mo&ve &No Display"), "cmd" : fte.setting_move_display_no_cmd},
-
-                {"name" : ("hd","&Final Position Display"), "cmd" : fte.setting_final_position_display_cmd},
-                {"name" : ("hd","F&inal Position No Display"), "cmd" : fte.setting_final_position_display_no_cmd},
-
-                {"name" : ("hd","F&EN Print"), "cmd" : fte.setting_print_fen_cmd},
-                {"name" : ("hd","FEN No &Print"), "cmd" : fte.setting_print_fen_no_cmd},
-                
-                {"name" : ("hd","&Loop Interval"), "cmd" : fte.setting_loop_interval_cmd},
-            
-                {"name" : ("hd","&Stop on error"), "cmd" : fte.setting_stop_on_error_cmd},
-                {"name" : ("hd","NO S&top on error"), "cmd" : fte.setting_no_stop_on_error_cmd},
-
-        """
         
         self.frame.SetMenuBar(menubar)
         self.menus_cmd_menu_item = {}   # by menu short cut by cmd short cut
@@ -281,7 +259,7 @@ class CgdMenus:
         print("File_Save_menu to be determined")
 
 
-    def settings_help_cmd(self, _=None):
+    def cmd_settings_help(self, _=None):
         """ Help for settings
         """
         """ Help - list command (Alt-s) commands
@@ -296,7 +274,7 @@ class CgdMenus:
     """ Game support package
     """
 
-    def game_help_cmd(self, _=None):
+    def cmd_game_help(self, _=None):
         """ Help for Alt-g commands
         """
         """ Help - list command (Alt-m) commands
@@ -319,7 +297,7 @@ class CgdMenus:
 
     """ Scanning menu commands  """
 
-    def scan_help_cmd(self, _=None):
+    def cmd_scan_help(self, _=None):
         """ Help for Alt-s commands
         """
         """ Help - list command (Alt-s) commands
@@ -330,7 +308,7 @@ class CgdMenus:
         """
         self.speak_text(help_str)
 
-    def scan_files_cmd(self, _=None):
+    def cmd_scan_files(self, _=None):
         print("TBD")
 
     """

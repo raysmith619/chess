@@ -50,6 +50,7 @@ class ChessMoveNotation:
         :returns: None if OK, error message text if problem
         """
         self.cm = chess_move
+        self.orig_sq_file = None
                 
     def __str__(self):
         """ String form for debugging/analysis
