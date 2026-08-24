@@ -1,0 +1,24 @@
+import re
+
+
+if (game_res_match := re.match(r"^(.*)(1-0|0-1|1/2-1/2)$", rem_str)):
+	rem_str, game_res = game_res_match.groups()
+	
+	(.*)(\+|#)$     (.*)([+#])$	# two check/checkmate patterns
+
+	^(.*?)(0-0|0-0-0)$			# king and queen castle	NOTE the
+								# NOTE the .*? which is a lazy
+								# instead of greedy grabbing
+	
+	(.*)(=[QRBN])$				# Promotion
+	(.*)([a-h][1-8])$   		# destination square
+	(.*)([x:])$					# capture
+	
+	([KQRBN])(.*)$				# Piece  could be a P for pawn
+	([a-h])(.*)$					# file disambigate
+	([1-8])(.*)$					# rank disambigate
+	
+	Allow, but ignore leading/trailing white space
+	^\s*(.*)(my_pattern)\s*$
+
+ 
