@@ -1,5 +1,6 @@
 #central_data.py    17Aug2026  crs, Author
 # Central settings to coordinate game status
+from graphics_braille.select_trace import SlTrace
 
 class CentralData:
     def __init__(self, cgd=None, ccs=None, cgm=None, move_index=0):
@@ -98,5 +99,7 @@ class CentralData:
         """
         self.cgd.display_board()
         if source != "cgm":
-            self.cgm.update_display(source=source)
-
+            if self.cgm is not None:
+                self.cgm.update_display(source=source)
+            else:
+                SlTrace.lg("cgm not setup yet")

@@ -94,29 +94,15 @@ class ChessCentralShow:
                                 win_width=width, win_height=height,
                                 speaker_control=self.speaker_control)
         else:
-            self.cbd.game_reset()
+            self.cbd.setup_display(game)
             self.cbs = self.cbd.cbs
-            
         self.cbd.setup_chess_goto_move(game=game)
-        if hasattr(self.cbd, 'is_display_fen') and self.cbd.is_display_fen:
-            fen_str = self.cb.board_to_fen_str()
-            SlTrace.lg(f"{fen_str}\n")
-        self.cbp = ChessboardPrint(self.cb)
-        if game is not None:
-            self.cbd.sel_game = game
-        self.display_board()
-        
         
     def setup_board(self, game):
         """ Setup new game board
         :game: game in pgn 
         """
-        
-        self.cbd.sel_game = game
-        self.current_game = game
-        self.current_move_index = 0
-        ###self.cbd.restart()
-        self.restart_game()
+        self.cbd.setup_board(game)
         
     def get_move_desc(self):
         """ Get move descriptor / title
@@ -185,13 +171,8 @@ class ChessCentralShow:
             
         if (cm := self.cbs.move_redo()) is not None:  # Use redo, if any pending
             return cm   # bd_stack is adjusted
-        moves = self.current_game.moves
-        if self.current_move_index >= len(moves):
-            return None         # No more moves in game
         
-        move_spec = moves[self.current_move_index]
-        self.current_move_index += 1
-        return move_spec    
+        return self.cbd.get_next_input_move()
 
     def error_show(self, desc=None):
         """ Report error, saving file png text
@@ -251,7 +232,7 @@ class ChessCentralShow:
             '''
             SlTrace.lg("Ready to make move")
         cm.make_move()
-        self.display_board()
+        self.cbd.display_board()     # Use self.display_board???
         return cm
                 
     def do_move_spec(self, spec):

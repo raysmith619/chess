@@ -42,6 +42,7 @@ from wx_chess_settings_frame import ChessSettingsFrame
 from chess_settings_server import ChessSettingsServer
 from wx_chess_goto_move import ChessGotoMove
 from central_data import CentralData
+from chessboard_print import ChessboardPrint
               
         
 class ChessGameDisplay(wx.Frame):
@@ -96,6 +97,7 @@ class ChessGameDisplay(wx.Frame):
         menu_str="",
         key_str="",
         setup_wx_win = True,
+        game=None,
                  ):
         self.cgm = None     # Goto/game display
 
@@ -155,6 +157,10 @@ class ChessGameDisplay(wx.Frame):
         self.loop_interval = 250    # msec loop interval
         self.end_game_interval = 250    # msec end game interval
         self.move_desc = None
+        game_def = None
+        if game is None:
+            game = game_def
+        self.game = game
         if app is None:
             app = wx.App()
         self.app = app
@@ -425,9 +431,66 @@ class ChessGameDisplay(wx.Frame):
     def do_game_file(self, selection=None):
         """ process selection
         :selection: (index,...,game)
+        Get games, already read, from file
+            Setup game and display
         """
-        self.ccs.cgd_game_file(selection=selection)
+        index = selection[0]
+        game = selection[-1]
+        SlTrace.lg(f"get_file_games: {game=} {index=}")
+        if game is None:
+            return None         # None to have
         
+        short_desc = self.get_game_desc(game=game)
+        SlTrace.lg(f"get_file_games: {short_desc=} {game=}")        
+        self.stop_looping()
+        self.game_desc = short_desc
+        self.setup_display(game)
+        self.setup_board(game)
+        return None
+
+
+        
+    def setup_board(self, game):
+        """ Setup new game board
+        :game: game in pgn 
+        """
+        if game is None:
+            game = self.sel_game        
+        self.sel_game = game
+        self.input_move_index = 0
+        self.cmd_restart_game()
+
+    def setup_display(self, game):
+        """ Setup display
+        including basic board
+        :game: chess game as pgn string
+                default: no game
+        """
+        SlTrace.lg(f"setup_display: {game=}")
+        self.game_reset()
+        self.setup_board(game)
+            
+        self.setup_chess_goto_move(game=game)
+        if hasattr(self, 'is_display_fen') and self.is_display_fen:
+            fen_str = self.get_bd_fen()
+            SlTrace.lg(f"{fen_str}\n")
+        if game is not None:
+            self.sel_game = game
+        
+        self.display_board()
+
+    def get_bd_printer(self, bd=None):
+        """ Get board printer
+        :bd: board default: current board
+        :returns: ChessBoardPrint
+        """
+        bd = self.get_bd()
+        if bd is None:
+            raise ChessError("No current board")           # Get current board
+        
+        cbp = ChessboardPrint(self.cb)
+        return cbp
+
     def cmd_file_open(self, e=None):
         """Select chess game files and load the game
         game files are text files of Portable Game Notation (PGN).
@@ -863,13 +926,21 @@ class ChessGameDisplay(wx.Frame):
         """ Restart game
         """
         self.display_dispatch(input="t")
-
-    def set_game(self, game):
-        """ Set current game, scanned or played
-        :game: game in png format
+    
+    def get_next_input_move(self):
+        """ Get next input
+        :returns: Input move desc e.g. Nf3
+                None if end of game
         """
-        self.sel_game = game
-                        
+        moves = self.sel_game.moves
+        if self.input_move_index >= len(moves):
+            return None         # No more moves in game
+        
+        move_spec = moves[self.input_move_index]
+        self.input_move_index += 1
+        return move_spec    
+        
+                            
     def set_cmd(self, on_cmd):
         """ Setup cmd link
         :on_cmd: cmd(input) cmd
