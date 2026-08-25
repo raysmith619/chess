@@ -1,8 +1,22 @@
-import re
+parsing_move_spec.txt
 
 
-if (game_res_match := re.match(r"^(.*)(1-0|0-1|1/2-1/2)$", rem_str)):
+
+
+# All the python stuff to match
+# a move specification containing
+# a chess game result
+
+# DON'T need to remember this stuff.
+# just REMEMBER it's there IF/WHEN you want it.
+
+import re		# Makes it available to you
+
+if (game_res_match := re.match(
+			r"^(.*)(1-0|0-1|1/2-1/2)$",
+			rem_str)):
 	rem_str, game_res = game_res_match.groups()
+
 	
 	(.*)(\+|#)$     (.*)([+#])$	# two check/checkmate patterns
 

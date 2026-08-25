@@ -1,0 +1,29 @@
+parsing_move_spec_0.txt
+
+1-0			white wins (black loses)
+0-1			white loses (black wins)
+1/2-1/2	  	draw
+
+1-0|0-1|1/2-1/2		- Any of the Three
+					 ab|cd|efg  - matches "ab" or "cd" or "efg"
+								Note that in reading we have
+								long used the '"' character
+								to indicate a special interpretation
+
+Pattern Matching Special characters (DON'T NEED TO
+									REMEMBER THESE)
+| - pattern1 or pattern2
+^ - matches beginning of string
+$ - matches end of string
+. - matches any  charcter
+\ - makes special character regular
+	example: \. matches a dot
+	Note: \ makes some regular characters
+	into special characters
+	examples:
+		\s - matches "white space" characters
+			 includes spaces, tabs, newlines,
+			 carriage returns, form feeds,
+			 and vertical tabs
+				Confession: I had to look up
+					all these after space and tab
