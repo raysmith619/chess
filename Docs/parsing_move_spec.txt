@@ -7,20 +7,29 @@ parsing_move_spec.txt
 # a move specification containing
 # a chess game result
 
-# DON'T need to remember this stuff.
+# DON'T NEED TO REMEMBER THIS STUFF.
 # just REMEMBER it's there IF/WHEN you want it.
 
-import re		# Makes it available to you
+import re		# Makes re matching available to you
 
-if (game_res_match := re.match(
+game_res_match := re.match(
 			r"^(.*)(1-0|0-1|1/2-1/2)$",
-			rem_str)):
+			rem_str)
+
+if game_res_match:
 	rem_str, game_res = game_res_match.groups()
 
-	
-	(.*)(\+|#)$     (.*)([+#])$	# two check/checkmate patterns
+# Rest of the patterns follow.
+# Processed in order.
 
-	^(.*?)(0-0|0-0-0)$			# king and queen castle	NOTE the
+# The programming code is
+#   ommitted to concentrate
+#   on the patterns
+	
+	^(.*)(\+|#)$		# two check/checkmate patterns
+	^(.*)([+#])$		# [...bunch of single characters...]	
+
+	^(.*?)(0-0|0-0-0)$			# king and queen castle
 								# NOTE the .*? which is a lazy
 								# instead of greedy grabbing
 	
@@ -29,6 +38,8 @@ if (game_res_match := re.match(
 	(.*)([x:])$					# capture
 	
 	([KQRBN])(.*)$				# Piece  could be a P for pawn
+								#  Match indicates regular piece
+								#  No match indicates pawn
 	([a-h])(.*)$					# file disambigate
 	([1-8])(.*)$					# rank disambigate
 	
