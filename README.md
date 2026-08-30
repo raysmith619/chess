@@ -38,6 +38,12 @@ screen readers and other accessibility code which benefits the blind.
 #### Chess Board Display
 ![Simple Chess Display](Docs/simple_chess_board_wp.png)
 
+#### Display Chess Move Direction
+The following is a screen shot demonstrating our attempt to enhance the view, especially the novice chess
+player by enhancing the view by emphasizing the move just made.  We depict by a line of colored arrows from the
+move's piece origin square to the destination square.
+![Chess Move Direction Display](Docs/Display_Move_Direction.png)
+
 ## Chess Attributes / Views
 Although the game of chess is intertwined with different aspects we
 can divide to conquer.   The following divisions have been helpful to me.
