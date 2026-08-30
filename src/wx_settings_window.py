@@ -37,6 +37,14 @@ class SettingsWindow(wx.PopupWindow):
         
         settings_sizer = wx.BoxSizer(wx.VERTICAL)
 
+        self.cb_display_move_direction = wx.CheckBox(settings_panel, -1,
+                                           "Display Move Direction")
+        self.Bind(wx.EVT_CHECKBOX, self.cmd_display_move_direction,
+                  self.cb_display_move_direction)
+        self.cb_display_move_direction.SetForegroundColour(cb_color)
+        settings_sizer.Add(self.cb_display_move_direction,proportion=0,
+                           flag=wx.EXPAND | wx.ALL, border=5)
+
         self.cb_print_board = wx.CheckBox(settings_panel, -1,
                                           "Print Board")
         self.Bind(wx.EVT_CHECKBOX, self.cmd_print_board,
@@ -99,6 +107,11 @@ class SettingsWindow(wx.PopupWindow):
         msg1 = "Don't " if not val else ""
         SlTrace.lg(msg1 + "Print_board")
     
+    def cmd_display_move_direction(self, event=None):
+        val = self.cb_display_move_direction.GetValue()
+        msg1 = "Don't " if not val else ""
+        SlTrace.lg(msg1 + "Display Move Direction")
+    
     def cmd_display_move(self, event=None):
         val = self.cb_display_move.GetValue()
         msg1 = "Don't " if not val else ""
@@ -130,7 +143,7 @@ if __name__ == '__main__':
     height = int(400)
     size = wx.Size(width, height)
     frame = wx.Frame(None, size=size)
-    frame.SetBackgroundColour(wx.Colour("green"))
+    #frame.SetBackgroundColour(wx.Colour("green"))
     frame.Show()
     settings_win = SettingsWindow(frame, "SettingsFrame",
                                   size=size) 

@@ -20,9 +20,10 @@ import pgn
 
 from gr_input import gr_input        
 from graphics_braille.wx_speaker_control import SpeakerControlLocal
-
+from wx_anotated_chess_panel import AnotatedChessPanel
+from wx_anotated_chess_panel import ArrowHistory, ArrowElement
 from chessboard import Chessboard
-from wx_chessboard_panel import ChessboardPanel
+
 from graphics_braille.wx_grid_path import GridPath
 
 from wx_cgd_menus import CgdMenus
@@ -44,7 +45,7 @@ from wx_chess_goto_move import ChessGotoMove
 from central_data import CentralData
 from chessboard_print import ChessboardPrint
               
-        
+                    
 class ChessGameDisplay(wx.Frame):
     base_display_id = 0         # Unique display id: 1...
     display_d = {}              # dictionary of ChessboardDisplay by id
@@ -147,6 +148,7 @@ class ChessGameDisplay(wx.Frame):
         self.setting_is_move_display = True
         self.setting_is_final_position_display = True
         self.setting_is_printing_board = True
+        self.setting_is_display_move_direction = False
         self.setting_is_printing_fen = True
         self.settings_is_fastest_run = False
         self.settings_is_shortest_move = False
@@ -217,7 +219,7 @@ class ChessGameDisplay(wx.Frame):
         self.grid_width = grid_width
         self.grid_height = grid_height
         board = cbs.get_bd()
-        self.chess_pan = ChessCanvasPanel(self, board=board,sq_size=75)
+        self.chess_pan = AnotatedChessPanel(self, board=board,sq_size=75)
         self.chess_pan.Unbind(wx.EVT_KEY_DOWN)
         self.chess_pan.Unbind(wx.EVT_CHAR_HOOK)       
         self.Bind(wx.EVT_KEY_DOWN, self.cdata.on_key_down)      # centralize
@@ -245,6 +247,11 @@ class ChessGameDisplay(wx.Frame):
             cbs = ChessboardStack()
             cbs.push_bd(cb)
         self.cbs = cbs
+
+    def setup_arrow_history(self):
+        """ Setup arrow display
+        """
+        self.chess_pan.setup_arrow_history()
             
 
         
@@ -420,6 +427,7 @@ class ChessGameDisplay(wx.Frame):
         """ Restart board game
         :pass_to_cgm: True - send cmd to cgm
         """
+        self.setup_arrow_history()
         self.cdata.restart_game()
         
 
@@ -445,7 +453,7 @@ class ChessGameDisplay(wx.Frame):
         self.stop_looping()
         self.game_desc = short_desc
         self.setup_display(game)
-        self.setup_board(game)
+        self.setup_chess_goto_move(game, force=True)
         return None
 
 
@@ -467,17 +475,27 @@ class ChessGameDisplay(wx.Frame):
                 default: no game
         """
         SlTrace.lg(f"setup_display: {game=}")
-        self.game_reset()
-        self.setup_board(game)
-            
-        self.setup_chess_goto_move(game=game)
-        if hasattr(self, 'is_display_fen') and self.is_display_fen:
-            fen_str = self.get_bd_fen()
-            SlTrace.lg(f"{fen_str}\n")
-        if game is not None:
-            self.sel_game = game
-        
+        self.ccs_setup_display(game)
+        self.ccs.setup_board(game)    
+
         self.display_board()
+
+    def ccs_setup_display(self, game):
+        """ Setup display
+        From ccs = hack to like ccs
+        including basic board
+        :game: chess game as pgn string
+                default: no game
+        """
+        SlTrace.lg(f"setup_display: {game=}")
+        ###if self.cbd is not None:
+        ###    self.cbd.on_close_window()   # Remove existing display
+        self.ccs.cb = Chessboard()           # For inital sizes
+        self.ccs.cb.standard_setup()         # Starting position
+        self.ccs.cbs = ChessboardStack()
+        self.ccs.cbs.push_bd(self.ccs.cb)
+        self.cbs = self.ccs.cbs
+        self.setup_chess_goto_move(game=game)
 
     def get_bd_printer(self, bd=None):
         """ Get board printer
@@ -705,7 +723,7 @@ class ChessGameDisplay(wx.Frame):
         self.chess_loop_count += 1
         SlTrace.lg(f"chess_loop_count: {self.chess_loop_count}")
         wx.GetApp().Yield()     # Allow display(s) refresh
-        if self.move_index == 0:    # Begin Game
+        if self.move_index == 1:    # Begin Game
             ck_msg = self.ck_bd_setup()
             if ck_msg:
                 self.chess_err_fun(f"ERROR: Unexpected startup {ck_msg}")
@@ -744,7 +762,7 @@ class ChessGameDisplay(wx.Frame):
         """ Chess error function
         """
         SlTrace.lg(f"Chess Error: {msg}")
-        if False:
+        if True:
             SlTrace.lg("Stopping looping")
             self.stop_looping()
             
@@ -1027,22 +1045,6 @@ class ChessGameDisplay(wx.Frame):
         """
         self.SetTitle(title)
 
-    # Display Command Dispatch
-    def display_dispatch(self, cmd, *args, **kwargs):
-        """ Dispatch action requests
-        :self: ChessGameDisplay instance, must have 
-        :cmd: command identifying string
-        :args: positional args,
-        :kwargs: keyword args
-        """
-        if self.on_cmd is None:
-            SlTrace.lg("display_dispatch on_cmd is None")
-            return
-        
-        SlTrace.lg(f"on_cmd({cmd=}, {args=}, {kwargs=})")
-        self.on_cmd(self, cmd, *args, **kwargs)
-
-
     def mainloop(self):
         """ Do mainloop
         """
@@ -1146,6 +1148,13 @@ class ChessGameDisplay(wx.Frame):
         self.set_game_desc()
         bd = self.get_bd()
         self.chess_pan.set_board(bd)
+        self.chess_pan.setup_arrow_history()    # Hack to aviod full board list
+        if self.setting_is_display_move_direction:
+            moves = "white" if bd.to_move == "black" else "black"
+            self.chess_pan.arrow_history.add(ArrowElement(from_sq=bd.orig_sq,
+                                                    to_sq=bd.dest_sq,
+                                                    moves=moves))
+        
         self.chess_pan.Refresh()
         '''
         if (self.cgm is None

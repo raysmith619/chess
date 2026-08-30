@@ -693,6 +693,5 @@ if __name__ == '__main__':
     ccs = ChessCentralShow()
     ccs.setup_display(demo_game)
     ccs.setup_board(demo_game)    
-    SlTrace.set_start_time()     
-    ccs.cbd.update()            
+    SlTrace.set_start_time()                
     ccs.cbd.mainloop()     

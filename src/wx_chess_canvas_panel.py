@@ -108,7 +108,7 @@ class ChessCanvasPanel(CanvasPanel):
             default: use board.setting
         """
         if not hasattr(self, 'cpi'):
-            return  # Piece info not ready  yed
+            return  # Piece info not ready  yet
         
         if title is None:
             title = self.title

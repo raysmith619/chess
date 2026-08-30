@@ -4,7 +4,6 @@
 import wx
 
 from graphics_braille.select_trace import SlTrace
-from graphics_braille.wx_trace_control_window import TraceControlWindow
 
 
 class MenuDisp:
@@ -143,7 +142,9 @@ class CgdMenus:
         self.frame.SetMenuBar(menubar)
         self.menus_cmd_menu_item = {}   # by menu short cut by cmd short cut
                                         # m[menu_sc][menu_item_sc] = cmd
-        
+
+        self.menu_direct_execution = {} # by menu_heading: direct function call
+                
         for menu_name in menu_name_list:
             menu_settings = menus_settings[menu_name]
             menu_heading = menu_settings["heading"]
@@ -160,6 +161,10 @@ class CgdMenus:
             menubar.Append(menu,  menu_heading)
             menu_items = menus_items[menu_name]
             for menu_item_specs in menu_items:
+                if len(menu_items) == 1:      # Direct execution if only one pull-down item
+                   self.menu_direct_execution[menu_heading] = menu_item_specs["cmd"]
+                   break    # No pull down list - just execution when Heading selected
+               
                 if "sep" in menu_item_specs:
                     menu_item = menu.Append(wx.ID_SEPARATOR)
                 else:
@@ -185,6 +190,27 @@ class CgdMenus:
    
                     menu_item = menu.Append(wx.ID_ANY, menu_item_heading)
                 self.frame.Bind(wx.EVT_MENU, menu_cmd, menu_item)
+                # Check for single menu item pulldown for direct execution
+                self.frame.Bind(wx.EVT_MENU_OPEN, self.on_menu_open)
+
+
+
+    def on_menu_open(self, event):
+        # Intercept menu opening
+        menu = event.GetMenu()
+        if menu is None:
+            return
+        
+        # Check if the opened menu is your target blank menu
+        menu_heading = menu.GetTitle()
+        
+        if menu_heading in self.menu_direct_execution:
+            direct_fun = self.menu_direct_execution[menu_heading]
+            direct_fun()
+            return
+        
+        #self.frame.Skip()     # Pass on event
+
 
     def get_menu_cmd(self, menu_sc, mi_sc):
         """ get menu cmd

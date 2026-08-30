@@ -9,6 +9,7 @@ class ChessSettingsServer(wx.Frame):
         self.setting_game_start_no = 1
         self.setting_game_end_no = None # No limit
         self.setting_is_move_display = True
+        self.setting_is_display_move_direction = False
         self.setting_is_final_position_display = True
         self.setting_is_printing_board = True
         self.setting_is_printing_fen = True

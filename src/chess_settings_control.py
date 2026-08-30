@@ -36,6 +36,8 @@ class ChessSettingsControl(SettingsControl):
                         default: no report
         """
         settings_def_dict = {
+                "Display_Move_Direction" :
+                    {"attr" : "setting_is_display_move_direction"},
                 "Print_Board" :
                     {"attr" : "setting_is_printing_board"},
                 "Print_FEN" :

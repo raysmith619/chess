@@ -25,6 +25,7 @@ class CentralData:
         :move_index: board move index
         :update_display: update all displays default:True
         :source: source of command  default: cgd (ChessGameDisplay)
+        :returns: new move_index if OK, else -1
         """
         new_index = move_index
         if move_index >= self.cgd.move_index:
@@ -33,6 +34,19 @@ class CentralData:
             self.move_index = move_index
         if update_display:
             self.update_display(source=source)
+        return new_index
+        
+    def set_move_index_relative(self, index_adj=1,
+                                update_display=True, source="cgd"):
+        """ Adjust move_index relative to current index
+        :index_adj: board move index adjustment 1-forward by 1
+        :update_display: update all displays default:True
+        :source: source of command  default: cgd (ChessGameDisplay)
+        """
+        new_index = index_adj + self.get_move_index()
+        return self.set_move_index(move_index=new_index,
+                                   update_display=update_display,
+                                   source=source) 
         
     def get_move_index(self):
         """ Get centralized move_index
@@ -54,18 +68,14 @@ class CentralData:
         """ Do chess move, updating state and notifying all parties
         returning new move_index
         """
-        new_move_index = self.ccs.update_board_state_for_move()
-        if new_move_index >= 0:
-            self.set_move_index(new_move_index, source=source)
-        return new_move_index
+        return self.set_move_index_relative(index_adj=1,
+                            source=source)
 
     def chess_unmove(self, source="cgd"):
         """ Do chess unmove, updating state and notifying all parties
         """
-        new_move_index = self.ccs.update_board_state_for_unmove()
-        if new_move_index >= 0:
-            self.set_move_index(new_move_index, source=source)
-        return new_move_index
+        return self.set_move_index_relative(index_adj=-1,
+                            source=source)
 
     def chess_loop(self, source="cgd"):
         """ Do chess loop

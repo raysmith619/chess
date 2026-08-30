@@ -48,7 +48,8 @@ class Chessboard:
         """
         self.pieces = pieces
         self.piece_squares = []    # Initial list of pieces, if any
-        
+        self.orig_sq = None         # For display
+        self.dest_sq = None
         self.nsqx = nsqx
         self.nsqy = nsqy
         self.to_move = to_move
@@ -148,8 +149,6 @@ class Chessboard:
         :fen_str:  FEN notation string
         :returns: error message text, else None for success
         """
-        if (err := self.fen_check(fen_str)) is not None:
-            return err
         
         cf = ChessFEN()
         if cf.parse(fen_str):
@@ -159,6 +158,8 @@ class Chessboard:
         self.clear_board()
         self.piece_squares = []        
         cf.export_to_bd(self)    
+        if (err := self.fen_check(fen_str)) is not None:
+            return err
         return None
     """ 
     Internal board access
@@ -425,11 +426,11 @@ class Chessboard:
             default: leave piece in square
         :returns: piece at sq, None if empty 
         """
+        assert not (sq is None
+                    and (file is None or rank is None))
         if sq is not None:
             if sq in self.board_setting:
                 return self.board_setting[sq]            
-            return None
-        elif file is None and rank is None:
             return None
         
         sq = self.file_rank_to_sq(file=file, rank=rank)
@@ -938,6 +939,12 @@ class Chessboard:
         if game_result is not None:
             return None
         
+        # Record for display
+        if orig_sq is not None:
+            self.orig_sq = orig_sq
+        if dest_sq is not None:
+            self.dest_sq = dest_sq
+            
         self.just_notation = just_notation      # To notify sub callers
         if orig_sq is None and not just_notation:
             err = f"make_move: spec:{spec} orig_sq:{orig_sq}"

@@ -54,6 +54,14 @@ class ChessSettingsDataPanel(wx.Panel, SettingsDisplay):
                   self.cb_print_fen)
         settings_sizer.Add(self.cb_print_fen, wx.EXPAND)
 
+
+        self.cb_display_move_direction = wx.CheckBox(settings_panel, -1,
+                        "Display Move Direction")
+        self.Bind(wx.EVT_CHECKBOX, self.cmd_display_move_direction,
+                  self.cb_display_move_direction)
+        settings_sizer.Add(self.cb_display_move_direction, wx.EXPAND)
+
+
         self.cb_display_move = wx.CheckBox(settings_panel, -1,
                         "Display Move")
         self.Bind(wx.EVT_CHECKBOX, self.cmd_display_move,
@@ -124,6 +132,7 @@ class ChessSettingsDataPanel(wx.Panel, SettingsDisplay):
                   OR widget 
         """
         self.name_to_info = {
+            "Display_Move_Direction" : self.cb_display_move_direction,
             "Print_Board"  : self.cb_print_board,
             "Print_FEN"    : self.cb_print_fen,
             "Display_Move" : self.cb_display_move,
@@ -162,6 +171,9 @@ class ChessSettingsDataPanel(wx.Panel, SettingsDisplay):
     
     def cmd_print_board(self, event=None):
         self._update_setting("Print_Board")
+
+    def cmd_display_move_direction(self, event=None):
+        self._update_setting("Display_Move_Direction")
 
     def cmd_display_move(self, event=None):
         self._update_setting("Display_Move")

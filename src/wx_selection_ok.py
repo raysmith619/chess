@@ -30,6 +30,7 @@ class SelectionOK(wx.Frame):
         okBtn = wx.Button(self.panel, wx.ID_ANY, 'OK')
         cancelBtn = wx.Button(self.panel, wx.ID_ANY, 'Cancel')
         self.Bind(wx.EVT_BUTTON, self.onOK, okBtn)
+        self.panel.Bind(wx.EVT_LIST_ITEM_ACTIVATED, self.onOK)
         self.Bind(wx.EVT_BUTTON, self.onCancel, cancelBtn)
         self.Bind(wx.EVT_LIST_ITEM_SELECTED, self.onItemSelected)
         topSizer        = wx.BoxSizer(wx.VERTICAL)

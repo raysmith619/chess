@@ -39,7 +39,7 @@ class ChessSettingsFrame(ChessSettingsDisplay):
             default: no action 
         """
         if  title is None:
-            title = __file__
+            title = "Game Settings"
         if size is None:
             size = wx.Size(400,400)
         if settings_server is None:

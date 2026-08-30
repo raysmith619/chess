@@ -18,9 +18,10 @@ from graphics_braille.wx_audio_beep import AudioBeep
 from chess_square import ChessSquare
 from chessboard_stack import ChessboardStack
 from graphics_braille.grid_fill_gobble import GridFillGobble
+from graphics_braille.wx_trace_control_window import TraceControlWindow
+from graphics_braille.wx_key_cmd_proc import KeyCmdProc
 
 from wx_cgd_menus import CgdMenus
-from graphics_braille.wx_key_cmd_proc import KeyCmdProc
 
 
 class CgdFrontEnd:
@@ -533,8 +534,10 @@ class CgdFrontEnd:
     """
 
     def trace_menu(self, _=None):
-        self.fte.trace_menu()       # *** in menus
-        
+        self.tcw = TraceControlWindow()
+
+
+    
     """ 
     End of menu commands
     """
@@ -602,11 +605,12 @@ if __name__ == '__main__':
                   
     app = wx.App()
     frame = wx.Frame(None)
+    ccs = None
     cbs = ChessboardStack()
-    cgd = ChessGameDisplay(cbs, parent=frame)
+    cgd = ChessGameDisplay(ccs, cbs, parent=frame)
    
     fte = CgdFrontEnd(cgd)
     menus = CgdMenus(fte, frame=frame)
-    fte.do_key_str("c;g")
+    ###fte.do_key_str("c;g")
     
     app.MainLoop()
