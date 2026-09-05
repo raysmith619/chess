@@ -64,6 +64,11 @@ class CentralData:
         if source != "cgd":
             self.cgd.exit()
 
+    def change_display_direction(self, source="cgd"):
+        """ Change/Bump move direction display
+        """
+        self.cgd.change_display_direction(source=source)    
+
     def chess_move(self, source="cgd"):
         """ Do chess move, updating state and notifying all parties
         returning new move_index

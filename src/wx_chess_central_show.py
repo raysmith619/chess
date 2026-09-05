@@ -287,8 +287,8 @@ class ChessCentralShow:
             ck_msg = self.cbd.ck_bd_setup()
             if ck_msg:
                 SlTrace.lg(f"ERROR: Unexpected startup {ck_msg}")
-                self.cbd.is_looping = False
-                self.cbd.is_scanning = False
+                ###self.cbd.is_looping = False
+                ###self.cbd.is_scanning = False
         new_move_index = self.cbd.cdata.chess_move()
         if new_move_index < 0:
             if self.cbd.is_scanning:
@@ -660,7 +660,7 @@ if __name__ == '__main__':
     scan_max_loops = 1          # Limit scanning loops
     update_as_loaded = False
     width = int(80*8+80*1.3)
-    height = int(80*8+80*2.5)
+    height = int(80*8+80*1.0)
     frame = wx.Frame(None, size=wx.Size(width,height)) 
 
 

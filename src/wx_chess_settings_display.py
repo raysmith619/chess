@@ -85,7 +85,7 @@ if __name__ == '__main__':
         sys.exit(0)
         
     settings_frame = ChessSettingsDisplay(frame,
-                        title="SettingsFrameDemo",
+                        title="Chess Settings",
                         size=size,
                         update_data_fun=update_data_fun,
                         update_control_fun=update_control_fun,

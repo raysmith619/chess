@@ -165,6 +165,17 @@ class ChessSettingsDataPanel(wx.Panel, SettingsDisplay):
         self._update_data_fun(name, val)
         self.print_name_val(name, val)
     
+    
+    def update_setting(self, name, val=None):
+        """ Update widget val, report
+        :name: setting name
+        :value: setting value default: True
+        """
+        if val is None:
+            val = True
+        self._update_data_fun(name, val)
+        self.print_name_val(name, val)
+        
     def print_name_val(self, name, val):
         msg1 = "Don't " if not val else ""
         SlTrace.lg(msg1 + name)

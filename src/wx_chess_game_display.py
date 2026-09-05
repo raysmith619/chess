@@ -83,7 +83,8 @@ class ChessGameDisplay(wx.Frame):
         title=None, speaker_control=None,
         games_dir="../games",       # chess games directory
         errors_dir="../errors",
-        win_width=800, win_height=800,
+        #win_width=800, win_height=800,
+        win_width=700, win_height=700,
         grid_width=8, grid_height=8,
         win_fract=True,
         x_min=None, y_min=None,
@@ -101,7 +102,7 @@ class ChessGameDisplay(wx.Frame):
         game=None,
                  ):
         self.cgm = None     # Goto/game display
-
+        self.display_board_count = 0    # How many times board displayed
         
         #frame = CanvasFrame(title=mytitle, size=wx.Size(width,height))
         """ Setup game window
@@ -220,6 +221,7 @@ class ChessGameDisplay(wx.Frame):
         self.grid_height = grid_height
         board = cbs.get_bd()
         self.chess_pan = AnotatedChessPanel(self, board=board,sq_size=75)
+        self.chess_pan.Fit()
         self.chess_pan.Unbind(wx.EVT_KEY_DOWN)
         self.chess_pan.Unbind(wx.EVT_CHAR_HOOK)       
         self.Bind(wx.EVT_KEY_DOWN, self.cdata.on_key_down)      # centralize
@@ -248,10 +250,10 @@ class ChessGameDisplay(wx.Frame):
             cbs.push_bd(cb)
         self.cbs = cbs
 
-    def setup_arrow_history(self):
-        """ Setup arrow display
+    def clear_arrow_history(self):
+        """ Clear arrow display
         """
-        self.chess_pan.setup_arrow_history()
+        self.chess_pan.clear_arrow_history()
             
 
         
@@ -427,7 +429,7 @@ class ChessGameDisplay(wx.Frame):
         """ Restart board game
         :pass_to_cgm: True - send cmd to cgm
         """
-        self.setup_arrow_history()
+        self.chess_pan.clear_arrow_history()
         self.cdata.restart_game()
         
 
@@ -447,6 +449,7 @@ class ChessGameDisplay(wx.Frame):
         SlTrace.lg(f"get_file_games: {game=} {index=}")
         if game is None:
             return None         # None to have
+        self.scan_ngame = index
         
         short_desc = self.get_game_desc(game=game)
         SlTrace.lg(f"get_file_games: {short_desc=} {game=}")        
@@ -524,6 +527,8 @@ class ChessGameDisplay(wx.Frame):
             game_file_name = fileDialog.GetPath()
             game_data_source = ChessGameDataSource(game_file_name)
             game_select = SelectionOK(self, game_data_source, doOK=self.do_game_file)
+            self.scan_file_name = game_file_name    # used for open, scanning
+            self.scan_ngame = 0
             game_select.Show()
             
     def cmd_file_save(self, e=None):
@@ -700,6 +705,7 @@ class ChessGameDisplay(wx.Frame):
     def cmd_btn_move(self, e=None):
         """ Called from move button or internal move
         """
+        self.clear_arrow_history()
         new_move_index = self.cdata.chess_move()
         return new_move_index
         
@@ -862,9 +868,6 @@ class ChessGameDisplay(wx.Frame):
         """
         return      # DROPPED in favor of adding id to each command
     
-        if self.on_cmd is not None:
-            self.display_dispatch(input=f"we {self.display_id}")
-    
     """ Setup keyboard/button commands
     """
     
@@ -880,27 +883,7 @@ class ChessGameDisplay(wx.Frame):
         if bd is None:
             return
         bd.print_board_to_fen()
-            
-    def cmd_move(self):
-        """ Make move
-        """
-        self.display_dispatch(input="n")
         
-    def cmd_unmove(self):
-        """ Unmakeake move
-        """
-        self.display_dispatch(input="u")
-
-    def cmd_stop(self):
-        """ Restart game
-        """
-        self.display_dispatch(input="p")
-
-    def cmd_loop(self):
-        """ Restart game
-        """
-        self.display_dispatch(input="l")
-
     def start_looping(self, loop_fun=None, interval=None):
         """ Start looping
         :loop_fun: loop function to call at interval
@@ -939,11 +922,6 @@ class ChessGameDisplay(wx.Frame):
             self.after_no_arg(self.loop_interval, self.loop_call)
         else:
             self.call_later_stop()
-            
-    def cmd_restart(self):
-        """ Restart game
-        """
-        self.display_dispatch(input="t")
     
     def get_next_input_move(self):
         """ Get next input
@@ -998,17 +976,19 @@ class ChessGameDisplay(wx.Frame):
         :title: title text
         """
         if text is None:
-            if self.scan_ngame_total == 0:
-                file_history = "-"
+            if self.scan_file_name is not None:
+                file_history = os.path.basename(self.scan_file_name)
+                if self.scan_ngame is not None and self.scan_ngame > 0:
+                    file_history += f" game: {self.scan_ngame}"
             else:
-                file_history = (f"{self.scan_ngame_total},"
-                            f"   ({self.scan_nfile}:"
-                            f" {self.scan_ngame:2})")
+                file_history = " - "
             if self.err_count > 0:
                 file_history += f" ERRORS: {self.err_count}"
             text = file_history
-        #self.txt_games_history.SetLabel(text)
-        #self.txt_games_history.Refresh()
+            if text is None:
+                text = "NONE"
+        self.txt_games_history.SetLabel(text)
+        self.txt_games_history.Refresh()
         self.set_title(text)
 
     def set_game_desc(self, text=None):
@@ -1129,6 +1109,13 @@ class ChessGameDisplay(wx.Frame):
         """
         ### TBD    self.mw.update()
 
+
+    def change_display_direction(self, source="cgd"):
+        """ Change/Bump move direction display
+        """
+        self.chess_pan.arrow_history.change_display_direction()   
+
+
     def display_board(self, title=None,
                       include_pieces=True):
         """ Display board
@@ -1148,14 +1135,15 @@ class ChessGameDisplay(wx.Frame):
         self.set_game_desc()
         bd = self.get_bd()
         self.chess_pan.set_board(bd)
-        self.chess_pan.setup_arrow_history()    # Hack to aviod full board list
+        #self.chess_pan.setup_arrow_history()    # Hack to aviod full board list
         if self.setting_is_display_move_direction:
+            self.chess_pan.arrow_history.clear_history()
             moves = "white" if bd.to_move == "black" else "black"
             self.chess_pan.arrow_history.add(ArrowElement(from_sq=bd.orig_sq,
                                                     to_sq=bd.dest_sq,
                                                     moves=moves))
         
-        self.chess_pan.Refresh()
+        self.chess_pan.Update()
         '''
         if (self.cgm is None
                 or not self.cgm):
@@ -1169,6 +1157,7 @@ class ChessGameDisplay(wx.Frame):
             ignore_select=True)
         '''
         self.Thaw()
+        self.display_board_count += 1    # How many times board displayed
 
     def get_moved(self):
         """ color just moved
@@ -1274,13 +1263,13 @@ class ChessGameDisplay(wx.Frame):
         """ Get and send FEN str
         """
         fen_str = self.fen_entry.get()
-        self.display_dispatch(f"get_fen {fen_str}")
+        ###self.display_dispatch(f"get_fen {fen_str}")
         self.fen_frame.destroy()
 
     def cmd_new_window(self):
         """ Create new independant window with current game state
         """
-        self.display_dispatch("w")
+        ###self.display_dispatch("w")
         
     def cmd_enter_fen(self):
         """ Setup board, using FEN string,
@@ -1493,6 +1482,7 @@ class ChessGameDisplay(wx.Frame):
             return
         
         self.sel_game = game    # "fall" into looping
+        self.setup_chess_goto_move(game=game, force=True)
         self.is_looping = True
         self.ccs.loop_game()
                     
@@ -1545,7 +1535,8 @@ class ChessGameDisplay(wx.Frame):
             # Get next game.
             if (game := self.scan_get_game()) is None:
                 return self.END_SCAN            # No more games
-            
+            self.scan_ngame += 1
+            self.scan_ngame_total += 1
             # Check if a desired game.
             if not self.scan_is_wanted_game(game):
                 continue
@@ -1581,8 +1572,9 @@ class ChessGameDisplay(wx.Frame):
         
                 self.scan_nfile += 1
                 SlTrace.lg(f"\nFile {self.scan_nfile:2}: {file}")
-                self.scan_file_name = file
                 with open(file) as game_file:
+                    self.scan_file_name = file
+                    self.scan_ngame = 0
                     pgn_text = game_file.read()
                     pgn_games = pgn.loads(pgn_text) # Returns a list of PGNGame
                     start_i = 0

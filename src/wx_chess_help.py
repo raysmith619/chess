@@ -36,6 +36,7 @@ class ChessHelp(wx.Frame):
         SPACE - goto to next move
         BACKSPACE - goto to previous move
         <number> [W or B] [G or Return]    goto to move number, white or black
+        D - rotate move direction display
         L - loop moves
         S - stop looping moves
         F - Flip move back and forth

@@ -1,6 +1,7 @@
 #wx_anotated_chess_panel.py   26Aug2026  crs, extend ChesssPanel
 """ Support arrow from from-sq to to-sq
 """
+import time
 import math
 
 import wx
@@ -38,33 +39,63 @@ class ArrowHistory:
         :acp: AnotatedChessPanel
         """
         self.acp = acp
-        self.history = []       # Arrow history, list of ArrowElement
-        self.from_sq = None        # latest - for debugging
+        self.history = []           # Arrow history, list of ArrowElement
+        self.from_sq = None         # latest - for debugging
         self.to_sq = None
+        self.display_direction_offset = 0    # current choice
+
+    def clear_history(self):
+        """ JUst clear history of arrows
+        """
+        self.history = []
+                
+    def change_display_direction(self):
+        """ Change/Bump move direction display
+        adds to base number
+        """
+        self.display_direction_offset += 1  
+        if self.acp.cgd and self.acp.cgd.display_board_count > 1:
+            self.acp.cgd.display_board()
 
     def add(self, arrow):
         """ Add element
         :arrow: arrow element ArrowElemtnt
         """
         self.history.append(arrow)
-                
-    def display(self):
-        """ Complete display of arrows
-        """
+
+    def get_display_fun(self):
+        display_choice_d = {1: self.md_display_arrows_line,
+                            2: self.md_display_arrows_growing,
+                            3: self.md_display_long_spike}
         disp_num = self.get_display_move_direction_number()
-        if disp_num == 1:
-            self.display_1()
-        elif disp_num == 2:
-            self.display_2()
+        disp_num = 1        # Force beginning
+        disp_num += self.display_direction_offset
+        if disp_num not in display_choice_d:
+            self.display_direction_offset = 0
+            if disp_num + self.display_direction_offset not in display_choice_d:
+                disp_num = 1
+        if disp_num in display_choice_d:
+            display_fun = display_choice_d[disp_num]
         else:
-            SlTrace.lg(f"Display_num {disp_num} is not supported")
+            display_fun = display_choice_d[1] 
+        SlTrace.lg(f"direction: {disp_num=} {display_fun=}")
+        return display_fun
+        
+                        
+    def md_display(self):
+        """ Choose and then make move display
+        """
+        display_fun = self.get_display_fun() 
+        SlTrace.lg(f"direction: {display_fun=}")
+        display_fun()
+        self.clear_history()
 
     def get_display_move_direction_number(self):
         """"Get current direction move style number
         """
         return self.acp.get_display_move_direction_number()
         
-    def display_1(self):            
+    def md_display_long_spike(self):            
         dc = wx.PaintDC(self.acp.grid_panel)
         
         for arrow in self.history:
@@ -109,8 +140,6 @@ class ArrowHistory:
             start_fill = sq_color
             self.acp.create_rectangle(*start_pts, fill=start_fill)
 
-                
-        self.acp.setup_arrow_history()      # Remove displayed(to be) arrows    
             
         for item in self.acp.items:
             self.acp.add_item(item)
@@ -155,7 +184,7 @@ class ArrowHistory:
                 """TBD"""
             SlTrace.lg(f"show_spot({self.int_list(spot)} {label} {self.from_sq} to {self.to_sq})")
                 
-    def display_2(self):
+    def md_display_arrows_growing(self):
         """ Display direction as a narrow band of > from the from
         sq middle to the middle of the to square, possibly with an increasing
         or decreasing width
@@ -179,20 +208,74 @@ class ArrowHistory:
                                       add_length=shaft_length)
             shaft_width = int(arrow_sep//8)
             arrow_spots = self.inner_points(from_point=line_start, to_point=to_center,
-                sep=arrow_sep, include_from=True, include_to=True)
-            arrow_color = "green" if arrow.moves=="white" else "red"
-            for arrow_spot in arrow_spots:
+                sep=arrow_sep)
+            direction_time = .5 # Time  for direction showing
+            dt_per = direction_time/len(arrow_spots)
+            for arrow_index, arrow_spot in enumerate(arrow_spots):
+                if arrow_index < len(arrow_spots)-1:
+                    arrow_color = "blue"
+                else:
+                    arrow_color = "black" if arrow.moves=="white" else "white"
+                self.display_arrow(head_pt=arrow_spot,
+                                direction_angle=direction_angle,
+                                shaft_length=shaft_length,
+                                shaft_width=shaft_width,
+                                arrow_color = arrow_color)
+                self.do_items()
+                #self.acp.Refresh()
+                self.acp.Update()
+                time.sleep(dt_per)
+    
+    def do_items(self):
+        """ Run over items"""        
+        dc = wx.PaintDC(self.acp.grid_panel)
+        for item in self.acp.items:
+            self.acp.add_item(item)
+        self.acp.display_pending(dc)
+                
+    def md_display_arrows_line(self):
+        """ Display fixed set of arrows from orig sq to dest squ
+        sq middle to the middle of the to square, possibly with an increasing
+        or decreasing width
+        """            
+        dc = wx.PaintDC(self.acp.grid_panel)
+        
+        for arrow in self.history:
+            if arrow.from_sq is None or arrow.to_sq is None:
+                continue  # Ignore as moves
+            
+            self.from_sq = arrow.from_sq        # latest - for debugging
+            self.to_sq = arrow.to_sq
+            from_center = self.acp.square_center(arrow.from_sq)
+            to_center = self.acp.square_center(arrow.to_sq)
+            chg_x = to_center[0] - from_center[0]
+            chg_y = to_center[1] - from_center[1]
+            direction_angle = math.atan2(chg_y, chg_x)
+            arrow_sep = self.acp.sq_size*.5
+            shaft_length = arrow_sep*.7
+            line_start = self.add_len(from_pt=from_center, direction_angle=direction_angle,
+                                      add_length=shaft_length)
+            shaft_width = int(arrow_sep//8)
+            arrow_spots = self.inner_points(from_point=line_start, to_point=to_center,
+                sep=arrow_sep)
+            
+            for arrow_index, arrow_spot in enumerate(arrow_spots):
+                if arrow_index < len(arrow_spots)-1:
+                    arrow_color = "blue"
+                else:
+                    arrow_color = "black" if arrow.moves=="white" else "white"
                 self.display_arrow(head_pt=arrow_spot,
                                 direction_angle=direction_angle,
                                 shaft_length=shaft_length,
                                 shaft_width=shaft_width,
                                 arrow_color = arrow_color)
                 
-        self.acp.setup_arrow_history()      # Remove displayed(to be) arrows    
-            
+        self.do_items()
+        '''            
         for item in self.acp.items:
             self.acp.add_item(item)
         self.acp.display_pending(dc)
+        '''
 
     def add_len(self, from_pt, direction_angle,
                         add_length):
@@ -264,16 +347,11 @@ class ArrowHistory:
         return int_list
     
     def inner_points(self, from_point, to_point, sep,
-                     include_to=True, include_from=False,
                      adjust_for_equal=True):
         """ Generate list of separated points between two ends
         :from_point: starting point
         :to_point: ending point
         :sep: separation between pointgs
-        :include_from: include starting point
-            default: don't include
-        :include_to: include ending point
-            default: include
         :adjust_for_equal: After getting sep (separation of points),
             adjust this slightly upward to provide equally separated
             points - from from_point to to_point
@@ -298,17 +376,13 @@ class ArrowHistory:
                 n_arrow = 1
             sep = end_dist/n_arrow
         inner_points = []
-        if include_from:
-            inner_points.append(from_point)
         while True:
-            dist += sep
-            if dist >= end_dist:
+            if dist > end_dist:
                 break
             x = dist*cos_angle
             y = dist*sin_angle
             inner_points.append((start_x+x, start_y+y))
-        if include_to:
-            inner_points.append(to_point)
+            dist += sep
         return inner_points    
 
 class AnotatedChessPanel(ChessCanvasPanel):
@@ -333,7 +407,7 @@ class AnotatedChessPanel(ChessCanvasPanel):
                 default: "#a65" (brown)
         """
         super().__init__(parent, **kwargs)
-        self.arrow_history = ArrowHistory(self)      # list of ArrowElement arrow display elements
+        self.arrow_history = ArrowHistory(self)
         self.grid_panel.Bind(wx.EVT_PAINT, self.OnPaint_acp)    # set to us
         self.set_display_move_direction_number(2)
 
@@ -349,17 +423,17 @@ class AnotatedChessPanel(ChessCanvasPanel):
         """
         self.display_move_direction_number = num
         
-    def setup_arrow_history(self):
-        """ Setup arrow display
+    def clear_arrow_history(self):
+        """ Clear arrow display
         """
-        self.arrow_history = ArrowHistory(self)
+        self.arrow_history.clear_history()
         
     def OnPaint_acp(self, event):
         """ Handle wx.EVT_PAINT
         Do parent's OnPaint then our stuff
         """
         super().OnPaint(event)
-        self.arrow_history.display()
+        self.arrow_history.md_display()
 
     def sq_to_row_col(self, sq):
         """ Convert sq to (irow,icol)

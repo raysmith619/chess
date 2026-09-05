@@ -96,7 +96,11 @@ class ChessGotoMove(wx.Frame):
         elif key in [wx.WXK_BACK, ord("-"), wx.WXK_NUMPAD_SUBTRACT]:
             self.set_half_move_relative(-1)
             return True
-        
+        elif key == ord("D"):
+            if self.cdata is not None:
+                self.cdata.change_display_direction(source="cgm")    
+            return True
+
         elif key == ord("F"):
             self.set_half_move_relative(-1) # Flip back and forth
             wx.Yield()
