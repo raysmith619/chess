@@ -1,0 +1,8 @@
+import re	# Makes re matching available
+
+game_res_match = re.match(
+			r"^(.*)(1-0|0-1|1/2-1/2)$",
+			rem_str)
+
+if game_res_match:
+	rem_str, game_res = game_res_match.groups()

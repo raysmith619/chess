@@ -1,0 +1,47 @@
+chess_game_notation.txt	03Sep2026
+
+Used all over the world
+to record games
+in tournament play
+in text transmission
+and storage
+
+Most common and recognized internationally is
+called algebraic notation
+
+Example
+1. e4 e5
+2. f4 exf4
+3. Bc4 Qh4+
+...Ommitted for brevity
+4. 0-1
+
+We'll skip the move numbers
+and separation.
+
+Let's look at the move
+specification string.
+Example: Bc4 (Bishop moves
+				to square c4)
+
+The primary goal of the
+move specification is to
+specify:
+1. the moving piece
+(king, queen, rook,
+bishop, knight, or pawn)
+
+2. the destination square
+file and row
+[ordering is from the
+white player's persepctive]
+
+column: known as file
+by letter, left to right, a-h
+
+row: known as rank by numbers,
+bottom to top 1-8
+
+3. Other move attributes
+such as check, checkmate,
+game result

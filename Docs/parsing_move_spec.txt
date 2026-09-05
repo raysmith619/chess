@@ -2,48 +2,87 @@ parsing_move_spec.txt
 
 
 
+Complete python snipit
+to match a chess move
+specification,looking a chess
+game result
 
-# All the python stuff to match
-# a move specification containing
-# a chess game result
+DON'T NEED TO REMEMBER THIS STUFF.
+just REMEMBER it's there IF/WHEN
+you want it.
 
-# DON'T NEED TO REMEMBER THIS STUFF.
-# just REMEMBER it's there IF/WHEN you want it.
+import re	# Makes re matching available
 
-import re		# Makes re matching available to you
-
-game_res_match := re.match(
+game_res_match = re.match(
 			r"^(.*)(1-0|0-1|1/2-1/2)$",
 			rem_str)
 
 if game_res_match:
 	rem_str, game_res = game_res_match.groups()
 
-# Rest of the patterns follow.
-# Processed in order.
+NOTES:
+1. "import re" imports re module
+providing regular expression support.
 
-# The programming code is
-#   ommitted to concentrate
-#   on the patterns
+2. re.match() looks for
+pattern ^(.*)(1-0|0-1|1/2-1/2)$
+in string rem_str.  If pattern
+matches (is found) re.match
+returns a "match object".
+If not found, re.match returns None.
+
+3. <match object>.groups() returns
+a tupple of captures in the match.
+The capture groups, numbered from 1 on the
+left, are created by counting
+left parentheses.
+  group 1: (.*),
+		everything to left of
+		game result,
+
+  group 2: (1-0|0-1|1/2-1/2),
+			game result
+
+Rest of the patterns follow.
+The are processed in order.
+
+We take the move specification
+string apart bit by bit.
+
+Programming code is
+ommitted to concentrate 
+on the patterns
+
+Two check/checkmate patterns:
+
+	^(.*)(\+|#)$
 	
-	^(.*)(\+|#)$		# two check/checkmate patterns
-	^(.*)([+#])$		# [...bunch of single characters...]	
+	^(.*)([+#])$
+
+The pattern "[" followed by one or
+			more characters
+			ending with "]"
+matches any one of the included
+characters
+
 
 	^(.*?)(0-0|0-0-0)$			# king and queen castle
-								# NOTE the .*? which is a lazy
+								# NOTE the .*? which is # a lazy(non-greedy)
 								# instead of greedy grabbing
 	
-	(.*)(=[QRBN])$				# Promotion
-	(.*)([a-h][1-8])$   		# destination square
-	(.*)([x:])$					# capture
+	^(.*)(=[QRBN])$				# Promotion
+	^(.*)([a-h][1-8])$   		# destination square
+	^(.*)([x:])$					# capture
 	
-	([KQRBN])(.*)$				# Piece  could be a P for pawn
+	^([KQRBN])(.*)$				# Piece  could be
+								# a P for pawn
 								#  Match indicates regular piece
-								#  No match indicates pawn
-	([a-h])(.*)$					# file disambigate
-	([1-8])(.*)$					# rank disambigate
-	
-	Allow, but ignore leading/trailing white space
-	^\s*(.*)(my_pattern)\s*$
+								#  No match indicates
+								# pawn
+	^([a-h])(.*)$				# source file
+								# disambigate
+								
+	^([1-8])(.*)$				# source rank
+								# disambigate
 
  
