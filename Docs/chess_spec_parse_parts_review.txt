@@ -1,0 +1,30 @@
+    pt = [
+        ["game_res", r"^(.*)(1-0|0-1|1/2-1/2)$", 2],
+        ["ck", r"^(.*)([+])$", 2],
+        ["ck_mate", r"^(.*)([#])$", 2],
+        ["castle_queen", r"^(.*)(O-O-O)$", 2], # MUST preceed king
+        ["castle_king", r"^(.*)(O-O)$", 2],
+        ["promotion", r"^(.*)(=[QRBN])$", 2],
+        ["destination", r"^(.*)([a-h][1-8])$",2],
+        ["capture", r"^(.*)([x:])$", 2],
+
+        # looking from the left end
+        ["piece", r"^([KQRBN])(.*)$", 1],
+        ["source_file", r"^([a-h])(.*)$",1],
+        ["source_rank", r"^([1-8])(.*)$", 1],
+    ]
+
+
+        for ptm in self.pt:
+            pt_name, pt_regex, pt_i = ptm
+            pat_match = re.match(pt_regex, rem_str)
+            if pat_match:
+                if pt_i == 1:
+                    game_pat, rem_str = pat_match.groups()
+                else:
+                    rem_str, game_pat = pat_match.groups()
+                self.matched[pt_name] = game_pat
+                if pt_name == "game_res":
+                    if rem_str == "":
+                        self._is_ok = True
+                        return
