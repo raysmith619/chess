@@ -7,25 +7,27 @@ import re
 
 class ChessSpecParse:
     """ Parsing table, list in order of matching
+    The goal is to recognize and parse all legal
+    move specifications and to recognize most illegal
+    specifications.
     attribute name: unique identifier of move attribute
     regex matching pattern: regular expression used
             to match
     match_pat_group: match group index for attribute pattern
     """
     pt = [
-        ["game_res", r"^(.*)(1-0|0-1|1/2-1/2)$", 2],
-        ["ck", r"^(.*)([+])$", 2],
-        ["ck_mate", r"^(.*)([#])$", 2],
-        ["castle_queen", r"^(.*)(O-O-O)$", 2], # MUST preceed king
-        ["castle_king", r"^(.*)(O-O)$", 2],
-        ["promotion", r"^(.*)(=[QRBN])$", 2],
-        ["destination", r"^(.*)([a-h][1-8])$",2],
-        ["capture", r"^(.*)([x:])$", 2],
+        ["game_res", r"^(.*)(1-0|0-1|1/2-1/2)$"],
+        ["ck", r"^(.*)([+])$"],
+        ["ck_mate", r"^(.*)([#])$"],
+        ["castle_queen", r"^(.*)(O-O-O)$"], # MUST preceed king
+        ["castle_king", r"^(.*)(O-O)$"],
+        ["promotion", r"^(.*)(=[QRBN])$"],
+        ["destination", r"^(.*)([a-h][1-8])$"],
+        ["capture", r"^(.*)([x:])$"],
+        ["source_rank", r"^(.*)([1-8])$"],
+        ["source_file", r"^(.*)([a-h])$"],
+        ["piece", r"^(.*)([KQRBN])$"],
 
-        # looking from the left end
-        ["piece", r"^([KQRBN])(.*)$", 1],
-        ["source_file", r"^([a-h])(.*)$",1],
-        ["source_rank", r"^([1-8])(.*)$", 1],
     ]
     """ Table of display instructions
     for atts_str()
@@ -66,29 +68,121 @@ class ChessSpecParse:
         """ Run through list of matches
         Check matches for special circumstances
         """
-        rem_str = self.spec
+        self._msg = "UNKNOWN REASON"
+        self.rem_str = self.spec
+        
+        if " " in self.spec:
+            return self.error(f"Embeded space in spec '{self.spec}'")
+        
         for ptm in self.pt:
-            pt_name, pt_regex, pt_i = ptm
-            pat_match = re.match(pt_regex, rem_str)
+            pt_name, pt_regex = ptm
+            pat_match = re.match(pt_regex, self.rem_str)
             if pat_match:
-                if pt_i == 1:
-                    game_pat, rem_str = pat_match.groups()
-                else:
-                    rem_str, game_pat = pat_match.groups()
-                self.matched[pt_name] = game_pat
-                if pt_name == "game_res":
-                    if rem_str == "":
+                self.rem_str, matched_pat = pat_match.groups()
+                self.matched[pt_name] = matched_pat
+
+                # Check for obvious errors after each matched pattern type
+                match pt_name:
+                    case "game_res":
+                        if self.rem_str == "":
+                            self._is_ok = True
+                            return
+                        
+                    case "ck" | "ck_mate":
+                        if pat_match and (ck:=self.is_any(["+","#"])):
+                            return self.error(f"misplaced {ck}")
+                    
+                    case "castle_king" | "castle_queen":
+                        if self.rem_str != "":
+                            return self.error(f"Non-empty remaining string: '{self.rem_str}'")
+
                         self._is_ok = True
                         return
-                
-                if pt_name in ["castle_king", "castle_queen"]:
-                    self._is_ok = True
-                    return
-                
-            elif pt_name == "piece":
-                self.matched[pt_name] = "P" # Pawn if no piece letter
+                    
+                    case "promotion":
+                        if pat_match and (ck:=self.is_any(["=","(",")"])):
+                            return self.error(f"misplaced {ck}")
+                    
+                    case "destination":
+                        pass
+                    case "capture":
+                        if (ck:=self.is_any(["x",":"])):
+                            return self.error(f"misplaced {ck}")
+                        
+                    case "piece":
+                        if (ck:=self.is_any(list("KQRBNP"))):
+                            return self.error(f"misplaced piece {ck}")
+                        
+                    case "source_file":
+                        if (ck:=self.is_any(list("abcdefgh"))):
+                            return self.error(f"misplaced {ck}")
+                        
+                    case "source_rank":
+                        if (ck:=self.is_any(list("12345678"))):
+                            return self.error(f"misplaced {ck}")
+                        
+            else:
+                # For match fails
+                match pt_name:
+                    case "game_res":
+                        if (err_match:=re.match(r"^(.*?)(\d+-\d+)$", self.rem_str)):
+                            return self.error(f"Bad game_res:'{err_match.group(2)}'")
+                        
+                        if (err_match:=re.match(r"^(.*?)(\d+/\d+-\d+/\d+)$", self.rem_str)):
+                            return self.error(f"Bad game_res: {err_match.group(2)}'")
+                    
+                    case "destination":
+                        if (err_match:=re.match(r"^(.*?)(\w\d+)$", self.rem_str)):
+                            return self.error(f"Bad destination: {err_match.group(2)}'")
+                    
+                    case "source_rank":
+                        if (err_match:=re.match(r"^(.*?)([09])$", self.rem_str)):
+                            return self.error(f"Bad rank: {err_match.group(2)}'")
+                    
+                    case "source_file":
+                        if (err_match:=re.match(r"^(.*?)([i-z])$", self.rem_str)):
+                            return self.error(f"Bad rank: {err_match.group(2)}'")
+                            
+                    case "piece":
+                        self.matched[pt_name] = "P" # Pawn if no piece letter
+                        if (ck:=self.is_any(list("KQRBNP"))):
+                            return self.error(f"misplaced piece {ck}")
+                        
+                     
+        if self.rem_str != "":
+            second_look = ChessSpecParse(self.rem_str)
+            if second_look and second_look.is_ok():
+                return self.error(f"Contains second spec: {self.rem_str}")
+            
+            self._is_ok = False
+            self._msg = f"Unused = '{self.rem_str}'"
+            return
+        
         self._is_ok = True
-    
+
+    def error(self, msg):
+        """ Announce error
+        :msg: error message string
+        :returns: msg
+        """
+        self._is_ok = False
+        self._msg = msg
+        return msg
+
+    def is_any(self, list_of, st=None):
+        """ Return first if found
+        :list_of: list of substrings
+        :st: target string
+            default: self.rem_str
+        :returns: first found, None if none found
+        """
+        if st is None:
+            st = self.rem_str
+        for ck_str in list_of:
+            if ck_str in st:
+                return ck_str
+        return None
+                
     def att(self, att):
         """ Get attribute
         :att: attribute
@@ -102,6 +196,8 @@ class ChessSpecParse:
         """ Return list of move attributes
         """
         st = ""
+        if not self.is_ok():
+            st += f"Illegal specification: {self.msg()} "
         for do in self.display_order:
             pt_name, disp_type = do
             if pt_name in self.matched:
@@ -127,14 +223,16 @@ class ChessSpecParse:
         """ Returns error message
             None if OK
         """
+        return self._msg
 
 if __name__ == '__main__':
     import pgn
 
-    def test_parse_game(game_desc, game_text):
+    def test_parse_game(game_desc, game_text, list_ok=False):
         """ Test parsing on game text
         :game_desc: game description
         :game_text: game text string
+        :list_ok: list if ok, default: True
         :returns: error msg if any else None
         """
         print(game_desc)
@@ -144,30 +242,41 @@ if __name__ == '__main__':
         for spec in moves:
             csp = ChessSpecParse(spec)
             if not csp.is_ok():
-                print(f"{spec}: parse failed")
+                print(f"{spec}: parse failed {csp.msg()}")
                 break
-            
-            print(f"{spec}: {csp.atts_str()}")
+            if list_ok:
+                print(f"{spec}: {csp.atts_str()}")
 
-    def test_parse_specs(specs_desc, specs_list):
+    def test_parse_specs(specs_desc, specs_list, list_ok=False):
         """ Test parsing on game text
         :specs_desc: specs examples description
         :specs_list: specs list of the following
-            spec_text, description[, failure expected description]            
+            spec_text, description[, failure expected description]
+        :list_ok: list if ok, default:False            
         :returns: error msg if any else None
         """
         print(specs_desc)
         for spl_ent in specs_list:
-            spec = spl_ent[0]
-            spec_desc = spl_ent[1]
-            ###if len(sp)
+            spec = spl_ent[1]
+            spec_desc = spl_ent[0]
+            if len(spl_ent) == 3:
+                spec_err_desc = spl_ent[2]
+            else:
+                spec_err_desc = None
                 
             csp = ChessSpecParse(spec)
-            if not csp.is_ok():
-                print(f"{spec}: parse failed")
-                break
+            if not csp.is_ok() and spec_err_desc is None:
+                msg = f"{spec}: parse failed"
+                print(msg)
+                return msg
             
-            print(f"{spec}: {csp.atts_str()}")
+            if csp.is_ok() and spec_err_desc is not None:
+                msg = f"{spec}: did not fail when {spec_err_desc}"
+                print(msg)
+                return msg
+            
+            if list_ok:
+                print(f"{spec}: {csp.atts_str()}")
 
     """ Test cases
     """
@@ -175,7 +284,36 @@ if __name__ == '__main__':
     Game of pattern examples
     Not really a game just a set of specs
     """
-    
+    pat_exs = [
+        ["game_res",        "1/2-1/2"],
+        ["game_res",        "1/2-1/4",  "no result 1/2-1/4"],
+        ["ck",              "Rfe8+"],
+        ["ck",              "Rfe8++",   "check is +"],
+        ["ck_mate",         "Rc2+#",    "mate:Rc2+#"],
+        ["ck_mate",         "#Rc2",     "# goes last"],
+        ["castle_queen",    "O-O-O+"],
+        ["castle_queen",    "+O-O-O", "+ is after"],
+        ["castle_king",     "O-O#"],
+        ["castle_king",     "KO-O", "No piece for castle"],
+        ["promotion",       "=Q+"],
+        ["promotion",       "=P", "can't promote to pawn"],
+        ["destination",     "Qa4"],
+        ["destination",     "Qj4", "files only a-h"],
+        ["capture",         "Rxe1"],
+        ["capture",         "Rxe9", "Ranks only a-8"],
+
+        ["piece",           "Ne5"],
+        ["piece",           "Nx5", "Files only a-h"],
+        ["piece",           "h3"],
+        ["piece",           "j3", "Pawn file only a-h"],
+        ["source_file",     "Rfe8+"],
+        ["source_file",     "R1aa4", "source file, then rank"],
+        ["source_file",     "Rie8+", "source_file only a-h"],
+        ["source_rank",     "R1d1"],
+        ["source_rank",     "R9d1", "source_rank only 1-8"],
+        ["multiple spec",   "e4 e5", "Two moves separated"],
+        ["multiple spec",   "e4e5", "Two moves together"],
+    ]
     
     game_commentary = """
     Game of the Century
@@ -203,7 +341,15 @@ if __name__ == '__main__':
     Nc3+ 41.Kc1 Rc2# 0-1
     """
     error_count = 0
-    msg = test_parse_game(game_commentary, demo_game_text)
+    list_ok = False
+    #list_ok = True
+    pat_exs_list_ok = True
+    
+    msg = test_parse_game(game_commentary, demo_game_text, list_ok=list_ok)
+    if msg:
+        error_count += 1
+        print(f"ERROR {error_count} {msg}")
+    msg = test_parse_specs(pattern_examples_desc, pat_exs, list_ok=pat_exs_list_ok)
     if msg:
         error_count += 1
         print(f"ERROR {error_count} {msg}")
