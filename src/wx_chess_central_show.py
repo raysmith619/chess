@@ -156,7 +156,7 @@ class ChessCentralShow:
                             speaker_control=self.speaker_control)
         if xdisp or self.cbd.setting_is_move_display:
             self.cbd.display_board(title=desc)    # Use current state
-        self.move_interval = self.cbd.loop_interval
+        self.chess_loop_interval = self.cbd.chess_loop_interval
         #self.cbd.update()
 
     def get_next_move(self):

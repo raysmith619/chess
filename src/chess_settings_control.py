@@ -56,7 +56,7 @@ class ChessSettingsControl(SettingsControl):
                 "get_fun" : settings_server.get_fastest_run,
                     "set_fun" : settings_server.set_fastest_run},
                 "Move_Interval" :
-                    {"attr" : "loop_interval"},
+                    {"attr" : "chess_loop_interval"},
                 }
         if settings_server is None:
             settings_server = ChessSettingsServer()

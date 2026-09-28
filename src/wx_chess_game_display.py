@@ -157,7 +157,7 @@ class ChessGameDisplay(wx.Frame):
         self.old_setting_is_printing_board = False
         self.old_setting_is_printing_fen = False
         self.old_loop_interval = 250
-        self.loop_interval = 250    # msec loop interval
+        self.chess_loop_interval = 250    # msec loop interval
         self.end_game_interval = 250    # msec end game interval
         self.move_desc = None
         game_def = None
@@ -618,7 +618,7 @@ class ChessGameDisplay(wx.Frame):
             self.old_setting_is_move_display = self.setting_is_move_display
             self.old_setting_is_printing_board = self.setting_is_printing_board
             self.old_setting_is_printing_fen = self.setting_is_printing_fen
-            self.old_loop_interval = self.loop_interval
+            self.old_loop_interval = self.chess_loop_interval
             sw.set_val(name="Display_Move", value=False)        
             sw.set_val(name="Print_Board", value=False)        
             sw.set_val(name="Print_FEN", value=False)        
@@ -666,13 +666,13 @@ class ChessGameDisplay(wx.Frame):
         """
         from gr_input import gr_input
         
-        interval = self.loop_interval
+        interval = self.chess_loop_interval
         new_val_str = gr_input("Loop interval(msec)", default=str(interval))
         print(f"{new_val_str = }")
         if new_val_str == "":
             return
         interval = int(new_val_str)
-        self.loop_interval = interval
+        self.chess_loop_interval = interval
 
     def cmd_setting_print_bd(self):
         self.setting_is_printing_board = True
@@ -777,7 +777,7 @@ class ChessGameDisplay(wx.Frame):
             begin_fun=None,
             end_game_fun=None,
             end_game_delay=None,
-            loop_interval=250,
+            loop_interval=None,
             err_fun=None, 
             source="cgd"):
         """ Do chess game move loop,
@@ -791,7 +791,7 @@ class ChessGameDisplay(wx.Frame):
         :loop_fun: Functions called for each loop
                     default: internal
         :loop_interval: interval between moves
-                default: 250 msec
+                default: from settings
         :err_fun: function to call on error
                 default: just list error
         Global controls:
@@ -811,8 +811,8 @@ class ChessGameDisplay(wx.Frame):
         if err_fun is None:
             err_fun = self.chess_err_fun_default
         self.chess_err_fun = err_fun
-         
-        self.chess_loop_interval = loop_interval
+        if loop_interval is not None:
+            self.chess_loop_interval = loop_interval
         self.chess_loop_source = source
         self.chess_loop_count = 0
 
@@ -894,7 +894,7 @@ class ChessGameDisplay(wx.Frame):
             loop_fun = self.loop_call
         self.loop_fun = loop_fun
         if interval is not None:
-            self.loop_interval = interval
+            self.chess_loop_interval = interval
         self.is_looping = True  # Cleared to stop loop
         self.loop_call()    # use after?
 
@@ -919,7 +919,7 @@ class ChessGameDisplay(wx.Frame):
         if self.is_looping:
             self.loop_fun()
         if self.is_looping:
-            self.after_no_arg(self.loop_interval, self.loop_call)
+            self.after_no_arg(self.chess_loop_interval, self.loop_call)
         else:
             self.call_later_stop()
     
@@ -1454,7 +1454,7 @@ class ChessGameDisplay(wx.Frame):
         self.is_scanning = True
         self.is_scanning_paused = False
         if move_interval is not None:
-            self.loop_interval = move_interval
+            self.chess_loop_interval = move_interval
         self.after_no_arg(0, self.scan_do_move)
             
     def scan_do_move(self):
@@ -1493,7 +1493,7 @@ class ChessGameDisplay(wx.Frame):
         """
         self.display_dispatch("scan_move", (move))
         if self.is_scanning:
-            self.after_no_arg(self.loop_interval, self.scan_do_move)
+            self.after_no_arg(self.chess_loop_interval, self.scan_do_move)
 
     def scan_moves_iterator(self, pgngame):
         """ Iterate moves through pgngame
