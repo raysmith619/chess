@@ -50,6 +50,7 @@ cm.assert_pieces("Ke1,Rh1, rd4")
 
 cm.do_test(desc="Check for passing over check")
 cm.clear_board()
+<<<<<<< HEAD
 cm.place_pieces("Ke1,Rh1, rd4,rf3")
 Ke1rd4rg3 = cm.get_move_to_sqs('K', orig_sq=e1)
 cm.assert_sqs(Ke1rd4rg3, e2)
@@ -71,6 +72,11 @@ cm.clear_board()
 cm.place_pieces("Ke1,Ra1, re3")
 Ke1Ra1rc5 = cm.get_move_to_sqs('K', orig_sq=e1)
 cm.assert_sqs(Ke1Ra1rc5, (d1,d2,f1,f2))
+=======
+cm.place_pieces("Ke1,Rh1, rd4,rg3")
+Ke1rd4rg3 = cm.get_move_to_sqs('K', orig_sq=e1)
+cm.assert_sqs(Ke1rd4rg3, (e2,f1,f2))
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
 cm.do_test(desc="Simple test on blank board, with bishop in a1 corner")
 cm.clear_board()

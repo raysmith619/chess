@@ -114,7 +114,11 @@ def setup_display(moves=None):
     cbs = ChessboardStack()
     cbs.push_bd(cb)
     cb.standard_setup()         # Starting position
+<<<<<<< HEAD
     cbd = ChessboardDisplay(cbs, title="Begin Game", scan_max_loops=scan_max_loops)
+=======
+    cbd = ChessboardDisplay(cb, title="Begin Game", scan_max_loops=scan_max_loops)
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
     if cbd.is_display_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
@@ -171,6 +175,7 @@ def display_board(desc=None, new_display=False):
     
     bd_str = cbp.display_board_str(display_options=display_options)
     gdesc = "" if game_desc is None else game_desc
+<<<<<<< HEAD
     if cbd.scan_nfile > 0:
         desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
     desc = f"{desc:<15}"  + gdesc
@@ -179,6 +184,11 @@ def display_board(desc=None, new_display=False):
                    +desc+
                    "\n"+bd_str, replace_non_ascii=None)
     if cbd.is_printing_fen:
+=======
+    desc = f"{desc:<15} {gdesc}"
+    SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
+    if cbd.is_display_fen:
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     if new_display:
@@ -227,6 +237,7 @@ def do_move(cm_or_spec=None):
             return None
         
     if isinstance(cm_or_spec, str):
+<<<<<<< HEAD
         cb = cbs.get_bd()
         if cb is None:
             cb = Chessboard()
@@ -234,6 +245,11 @@ def do_move(cm_or_spec=None):
         cm = ChessMove(cb, spec=cm_or_spec)        
         SlTrace.lg(f"{cm}")
         cb.cm = cm
+=======
+        cbs.push_bd()
+        cm = ChessMove(cbs.get_bd(), spec=cm_or_spec)
+        SlTrace.lg(f"{cm}")
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         if (decode_ret:=cm.decode(cm_or_spec)):
             err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
             SlTrace.lg(f"{err_prefix} {decode_ret = }")
@@ -245,7 +261,11 @@ def do_move(cm_or_spec=None):
     else:
         cm = cm_or_spec
     if cm is not None and cm.game_result is not None:
+<<<<<<< HEAD
         #stop_loop()
+=======
+        stop_loop()
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         return None
     return cm
         
@@ -427,6 +447,7 @@ def do_moves(input):
     """
     move_specs = ChessMoveNotation.game_to_specs(input)
     for move_spec in move_specs:
+<<<<<<< HEAD
         if (err:=do_move_spec(move_spec)):
             SlTrace.lg(f"Stop with error:{err}")
             break
@@ -437,6 +458,13 @@ def new_window():
     """
     display_board(desc="New Window", new_display=True)
                     
+=======
+        while (err:=do_move_spec(move_spec)):
+            SlTrace.lg(f"Stop with error:{err}")
+            break
+    display_board()            
+                
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 def display_cmd_proc(input):
     """ Process display commands
         Note to synchronize display window, all calls should include display id
@@ -448,6 +476,7 @@ def display_cmd_proc(input):
         e: print FEN
         goto_move_idx n: goto move index
         get_fen: FEN: load state, given the FEN notation
+<<<<<<< HEAD
         w: create new window
         we <display_id>: Set context to new display        
     """
@@ -464,6 +493,10 @@ def display_cmd_proc(input):
             
             cbd = cbdisp
             cbs = cbd.cbs         
+=======
+        
+    """
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
     fen_cmd_prefix = "get_fen: "
     goto_move_idx_prefix = "goto_move_idx"
     cm = None
@@ -538,6 +571,7 @@ def display_cmd_proc(input):
 
 
 cbd.set_cmd(display_cmd_proc)     
+cbd.set_moves_cmd(do_moves)     
 cbd.update()
             
 cbd.mainloop()     

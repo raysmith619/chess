@@ -53,7 +53,10 @@ class Chessboard:
         self.nsqx = nsqx
         self.nsqy = nsqy
         self.to_move = to_move
+<<<<<<< HEAD
         self.cm = None          # ChessMove
+=======
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         self.move_stack = []    # Stack of ChessSaveUnit
         self.move_redo_stack = []   # Stack of ChessSaveUnit of undos
         self.update = True # Default - update after make_move
@@ -63,7 +66,10 @@ class Chessboard:
         self.clear_assert_fail()
         self.set_assert_fail_max(10)
         self.cpm = ChessPieceMovement(self)
+<<<<<<< HEAD
         self.err_msg = None         # set to error message
+=======
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         err = self.setup_board(pieces=pieces,
                          standard_setup=standard_setup)
         if err:
@@ -129,6 +135,7 @@ class Chessboard:
         self.clear_board()
         self.piece_squares = []
         return self.fen_setup('rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1')
+<<<<<<< HEAD
     
     def fen_check(self, fen_str):
         """ Validate FEN string
@@ -161,6 +168,22 @@ class Chessboard:
         if (err := self.fen_check(fen_str)) is not None:
             return err
         return None
+=======
+                                
+    def fen_setup(self, fen_str):
+        """ Setup board piece_squares from FEN string
+        Setup board state piece placement, etc from FEN specification
+        :fen_str:  FEN notation string
+        :returns: error message text, else None for success
+        """
+        cf = ChessFEN()
+        if cf.parse(fen_str):
+            self.err = cf.err
+            return cf.err       # Bad syntax
+        
+        cf.export_to_bd(self)    
+
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
     """ 
     Internal board access
     Probably to be  made more efficient in the future
@@ -404,7 +427,10 @@ class Chessboard:
         self.half_move_clock = 0
         self.full_move_clock = 0
         self.poss_en_passant = None
+<<<<<<< HEAD
         self.poss_en_passant_rm_sq = None   # avoiding piece sq
+=======
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         self.can_castle_white_kingside = True
         self.can_castle_white_queenside = True
         self.can_castle_black_kingside = True
@@ -528,13 +554,22 @@ class Chessboard:
         full_move_clock
         started with white
         """
+<<<<<<< HEAD
         return self.full_move_clock
+=======
+        num = 1 + len(self.move_stack)//2
+        return num
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
     def get_opponent_pieces(self, to_move=None):
         """ Get all side to move pieces
         :to_move: black/white
             default: get from board
+<<<<<<< HEAD
         :returns:   list of piece_square settings
+=======
+        :returns   list of piece_square settings
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         """
         if to_move is None:
             to_move = self.get_to_move()
@@ -618,9 +653,15 @@ class Chessboard:
         """
         self.to_move = "black" if self.to_move == "white" else "white"
 
+<<<<<<< HEAD
     def castle_from_to(self, kingside= True, to_move=None):
         """ give source, destination sq - worker function
         :kingside: True - king side castle, else queen side
+=======
+    def castle_from_to(self, king_side= True, to_move=None):
+        """ give source, destination sq - worker function
+        :king_side: True - king side castle, else queen side
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         :to_move: white/black
                 default: get current
         :returns: (king origin sq, destination sq), rook orig, dest)
@@ -628,7 +669,11 @@ class Chessboard:
         """
         if to_move is None:
             to_move = self.get_to_move()
+<<<<<<< HEAD
         if kingside:
+=======
+        if king_side:
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
             if to_move == "white":
                 king_sq = "e1"
                 king_dest = "g1"
@@ -647,6 +692,7 @@ class Chessboard:
                 rook_dest = "d1"
             else:
                 king_sq = "e8"
+<<<<<<< HEAD
                 king_dest = "c8"
                 rook_sq = "a8"
                 rook_dest = "d8"
@@ -656,13 +702,28 @@ class Chessboard:
     def can_castle(self, kingside=True, to_move=None):
         """ Determine if we can castle
         :kingside: True if king side, else queen side
+=======
+                king_dest = "g8"
+                rook_sq = "h8"
+                rook_dest = "f8"
+        return king_sq, king_dest, rook_sq, rook_dest
+            
+
+    def can_castle(self, king_side=True, to_move=None):
+        """ Determine if we can castle
+        :king_side: True if king side, else queen side
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
                 default: kingside                
         :returns: True if the requested castling is permited
         """
         if to_move is None:
             to_move = self.get_to_move()
         king_sq, king_dest, rook_sq, rook_dest = self.castle_from_to(
+<<<<<<< HEAD
                 kingside=kingside, to_move=to_move)
+=======
+                king_side=king_side, to_move=to_move)
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
         # Check that pieces are in place
         k_piece = "K" if to_move == "white" else "k"
@@ -737,14 +798,71 @@ class Chessboard:
             incl_sqs[sq] = sq
             if sq == last_sq:
                 break
+<<<<<<< HEAD
             file_no += x_per_step
             rank_no += y_per_step
+=======
+            file_no += file_dir
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
             
         if not include_first:
             del incl_sqs[first_sq]
         if not include_last:
             del incl_sqs[last_sq]
         return incl_sqs
+
+<<<<<<< HEAD
+    def is_in_check(self, piece=None):
+        """ Check if king is in check
+        :piece: piece in question
+                default: our King
+        :returns: True if piece is in check
+        """
+        if piece is None:
+=======
+    def get_attacking_pieces(self, ps, to_move=None):
+        """ Get dictionary of piece-squares
+        which can attack/capture given sq
+        :ps: piece-square or sq
+            if sq use to_move 
+        :to_move: side to move (our side)
+                default: the board's
+        :returns: dictionary by squares, of pieces which can attack our
+                square sq
+        """
+        if len(ps) > 2:
+            target_piece,target_sq = self.ps_to_p_sq(ps)
+            to_move = self.piece_to_move(target_piece)
+        else:
+            target_piece = None
+            target_sq = ps
+            
+        if to_move is None:
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
+            to_move = self.get_to_move()
+            piece = "K" if to_move == "white" else "k"
+        ps_sq = self.get_pieces(piece=piece)
+        if len(ps_sq) == 0:
+            return False    # No king to check
+        
+        psq = ps_sq[0]
+        attacking_pieces = self.get_attacking_pieces(psq)
+        if len(attacking_pieces) > 0:
+            return True
+        
+<<<<<<< HEAD
+        return False            
+=======
+        att_pcs = self.att_pieces_black if to_move == "white" else self.att_pieces_white
+        att_piece_sqs = self.get_pieces(att_pcs)   
+        attacking_sqs = {}
+        for att_psq in att_piece_sqs:
+            att_piece, att_sq = self.ps_to_p_sq(att_psq)
+            att_move_to_sqs = self.get_move_to_sqs(att_piece,
+                                                   orig_sq=att_sq)
+            if target_sq in att_move_to_sqs:
+                attacking_sqs[att_sq] = att_piece
+        return attacking_sqs
 
     def is_in_check(self, piece=None):
         """ Check if king is in check
@@ -765,6 +883,44 @@ class Chessboard:
             return True
         
         return False            
+
+    def make_castle(self, king_side=True):
+        """ Do castle move
+        :king_sq: king's square e.g. e1
+        :rook_sq: rook's square e.g. h1 king's side, a1 queen's side
+        :king_side: king/queen side default: King side
+        :returns: None if OK, errmsg if problem
+        """
+        if err := self.can_castle(king_side):
+            return err
+        
+        if king_side:
+            if self.to_move == "white":
+                king_sq = "e1"
+                king_dest = "g1"
+                rook_sq = "h1"
+                rook_dest = "f1"
+            else:
+                king_sq = "e8"
+                king_dest = "g8"
+                rook_sq = "h8"
+                rook_dest = "f8"
+        else:
+            if self.to_move == "white":
+                king_sq = "e1"
+                king_dest = "c1"
+                rook_sq = "a1"
+                rook_dest = "d1"
+            else:
+                king_sq = "e8"
+                king_dest = "g8"
+                rook_sq = "h8"
+                rook_dest = "f8"
+            
+        self.make_move(orig_sq=king_sq, dest_sq=king_dest,
+                        orig2_sq=rook_sq, dest2_sq=rook_dest)
+        # Update castling
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
  
 
     def piece_color(self, piece):
@@ -876,6 +1032,7 @@ class Chessboard:
         """
         fen_str = self.board_to_fen_str()
         SlTrace.lg(fen_str)
+<<<<<<< HEAD
 
     def castle_opportunity(self, to_move="white", kingside=True):
         """ Check if the opportunity for castle is present
@@ -896,6 +1053,9 @@ class Chessboard:
         
         return self.can_castle_black_queenside
                 
+=======
+        
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     def make_move(self,
                   just_notation=False,
@@ -966,11 +1126,23 @@ class Chessboard:
                 prev_orig_sq_moved = self.set_as_moved(orig_sq)
             if orig2_sq is not None:
                 prev_orig2_sq_moved = self.set_as_moved(orig2_sq)
+<<<<<<< HEAD
             orig_piece = self.get_piece(sq=orig_sq)
             if orig_piece is None:
                 SlTrace.lg(f"orig_piece is None: bd: {self.board_to_fen_str()}")
                 return self.err_add(f"make_move: orig_sq({orig_sq} is empty)")
             
+=======
+            self.save_move(orig_sq=orig_sq, dest_sq=dest_sq,
+                    orig2_sq=orig2_sq, dest2_sq=dest2_sq,
+                    spec=spec,
+                    prev_orig_sq_moved=prev_orig_sq_moved,
+                    prev_orig2_sq_moved=prev_orig2_sq_moved,
+                    half_move_clock=self.half_move_clock,
+                    full_move_clock=self.full_move_clock,
+                    poss_en_passant=self.poss_en_passant)
+            orig_piece = self.get_piece(sq=orig_sq)
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
             orig_piece_type = self.piece_to_type(orig_piece)
             dest_piece = self.get_piece(sq=dest_sq)
             
@@ -998,6 +1170,7 @@ class Chessboard:
                 self.can_castle_black_kingside = False
             elif dest_sq == "a8":
                 self.can_castle_black_queenside = False
+<<<<<<< HEAD
             
             if (self.poss_en_passant is not None
                     and orig_piece_type == 'p'
@@ -1007,13 +1180,22 @@ class Chessboard:
             if orig_piece_type == 'p' or dest_piece is not None:    # pawn move or capture
                 self.half_move_clock = 0
             if orig_piece_type == 'p':
+=======
+                
+            self.poss_en_passant = None         # Forgotten
+            if orig_piece_type == 'p' or dest_piece is not None:    # pawn move or capture
+                self.half_move_clock = 0
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
                 o_file,o_rank = self.sq_to_file_rank(orig_sq, to_int=True)
                 d_file,d_rank = self.sq_to_file_rank(dest_sq, to_int=True)
                 if o_rank == 2 and d_rank == 4:     # white 2 sq move
                     self.poss_en_passant = self.file_rank_to_sq(file=o_file, rank=o_rank+1)
                 elif o_rank == 7 and d_rank == 5:   # black 2 sq move
                     self.poss_en_passant = self.file_rank_to_sq(file=o_file, rank=o_rank-1)
+<<<<<<< HEAD
                 self.poss_en_passant_rm_sq = dest_sq    # en passant capture will remove this
+=======
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
                         
             else:
                 self.half_move_clock += 1
@@ -1199,11 +1381,16 @@ class Chessboard:
                         full_move_clock=full_move_clock,
                         poss_en_passant=poss_en_passant)
 
+<<<<<<< HEAD
+=======
+        self.move_stack.append(save_unit)
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
     """
     Links to ChessPieceMovement via cpm
     """
 
+<<<<<<< HEAD
     def get_attacking_pieces(self, ps, to_move=None):
         """ Get dictionary of piece-squares
         which can attack/capture given sq
@@ -1279,6 +1466,108 @@ class Chessboard:
         """
         return self.cpm.get_move_to_sqs(piece, orig_sq=orig_sq)            
 
+=======
+
+    def is_at_origin(self, piece, sq):
+        """ Check if pawn at origin sq
+        :piece: piece
+        :sq: occupying square
+        :returns True if pawn at origin
+        """
+        return self.cpm.is_at_origin(piece=piece, sq=sq)
+
+    def get_move_to_sqs(self, piece, orig_sq=None):
+        """ Get list of squares this piece can legaly move to
+        including capture and promotion, based on board contents
+        One can use various functions to setup position:
+            self.clear_board() - clears board to empty
+            self.place_piece() - to setup additional pieces
+                    Note orig_sq implies piece, sq without actually
+                    populating the square
+            self.save_move(ChessSaveUnit) sets previous move 
+                e.g. self.save_move(ChessSaveUnit(self,
+                            orig_ps="pe7", dest_ps="pe5"))
+                        is a 2-square black pawn move which could
+                        be taken enpasant by a white pawn on d4
+        :piece: piece
+        :orig_sq: origin square
+        :prev_move: previous move (ChessSaveUnit)
+            default: get from board 
+        :returns: dictionary of candidate destination squares
+                Empty if none
+                None if error
+        """
+        return self.cpm.get_move_to_sqs(piece, orig_sq=orig_sq)            
+
+
+    def get_castle_move_to_sqs(self, piece, orig_sq):
+        """ Determine which, if any squares the king can move to 
+        by castling (kingside, queenside), we assume it is the king's
+        turn to move.
+             Requirements
+               * neither king nor rook have moved
+               * no interveining pieces
+               * king must not move from,through or to check
+        :piece: k for black king, K for white king
+        :orig_sq: orign square for king
+        :returns: dictionary of destination squares, empty if none
+        """
+        move_to_sqs = {}
+        to_move = self.piece_to_move(piece)
+        if self.can_castle(king_side=True):
+            kside = self.castle_from_to(to_move=to_move)
+            king_sq, king_dest, rook_sq, rook_dest = kside
+            move_to_sqs[king_dest] = None
+        if self.can_castle(king_side=False):
+            qside = self.castle_from_to(king_side=False, to_move=to_move)
+            king_sq, king_dest, rook_sq, rook_dest = qside
+            move_to_sqs[king_dest] = None
+        return move_to_sqs
+
+    def get_move_to_sqs(self, piece, orig_sq=None):
+        """ Get list of squares this piece can legaly move to
+        including capture and promotion, based on board contents
+        One can use various functions to setup position:
+            self.clear_board() - clears board to empty
+            self.place_piece() - to setup additional pieces
+                    Note orig_sq implies piece, sq without actually
+                    populating the square
+            self.save_move(ChessSaveUnit) sets previous move 
+                e.g. self.save_move(ChessSaveUnit(self,
+                            orig_ps="pe7", dest_ps="pe5"))
+                        is a 2-square black pawn move which could
+                        be taken enpasant by a white pawn on d4
+        :piece: piece
+        :orig_sq: origin square
+        :prev_move: previous move (ChessSaveUnit)
+            default: get from board 
+        :returns: dictionary of candidate destination squares
+                Empty if none
+                None if error
+        """
+        piece_type = piece.lower()
+        if piece_type not in ChessPieceMovement.piece_type_dir_d:
+            self.err = f"get_move_to_sqs {piece}"
+            return None
+        
+        if piece == 'p':
+            dir_type = 'p-black'    # reverse y direction
+        else:
+            dir_type = piece_type
+        dirs = ChessPieceMovement.piece_type_dir_d[dir_type]
+        if piece_type == 'p':
+            if self.is_at_origin(piece, orig_sq):
+                rep = 2
+            else:
+                rep = 1
+        elif piece_type in ['k', 'n']:
+            rep = 1
+        else:
+            rep = None  # Use default - max
+        return self.get_move_dir_sqs(piece, orig_sq=orig_sq,
+                                     list_dirs=dirs,
+                                     rep=rep)
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
         
 if __name__ == "__main__":

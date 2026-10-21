@@ -1,0 +1,14 @@
+[Event "ESP tour sim"]
+[Site "ESP"]
+[Date "1922.??.??"]
+[Round "?"]
+[White "Alekhine, Alexander"]
+[Black "Marin y Llovet, Valentin"]
+[Result "0-1"]
+
+1. d4 d5 2. Nf3 Nf6 3. c4 c6 4. Nc3 dxc4 5. e3 b5 6. a4 b4 7. Na2 e6 8. Bxc4 a5 9. O-O Bd6 10. Qc2 Ng4 11. h3 h5 12. e4 Nh6 13. Bg5 Be7 14. Bxe7 Qxe7 15. Nc1 g5 16. e5 g4 17. Nd2 gxh3 18. Ne4 hxg2 19. Nf6+ Kd8 20. Kxg2 Nd7 21. Nxh5 Qg5+ 22. Ng3 Nf5 23. Qe4 Bb7 24. Ne2 Kc7 25. Rh1 Nb6 26. Rxh8 Rxh8 27. Rc1 Nxg3 28. fxg3 c5 29. d5 exd5 30. Bxd5 Qxc1 31. Bxb7 Qh1+ 32. Kf2 Qxe4 33. Bxe4 Nxa4 34. b3 Nb6 35. Nf4 Re8 36. Nd5+ Nxd5 37. Bxd5 Rxe5 38. 0-1
+
+{
+Move: 10 Nf3 black decode_ret = 'Non-capture at f3 is occupied with N' spec error:None
+}
+

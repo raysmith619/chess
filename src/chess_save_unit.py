@@ -28,8 +28,12 @@ class ChessSaveUnit:
         can_castle_black_kingside=None,
         can_castle_black_queenside=None):
 
+<<<<<<< HEAD
         self.board = board   # As of current state, will chante
         self.move_no = board.get_move_no()
+=======
+        self.board = board
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         if to_move is None:
             to_move = board.get_to_move()
         self.to_move = to_move      # As of change
@@ -113,3 +117,7 @@ class ChessSaveUnit:
         board.can_castle_white_queenside = self.can_castle_white_queenside
         board.can_castle_black_kingside = self.can_castle_black_kingside
         board.can_castle_black_queenside = self.can_castle_black_queenside
+<<<<<<< HEAD
+=======
+    
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)

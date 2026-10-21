@@ -21,8 +21,17 @@ from graphics_braille.select_trace import SlTrace
 from graphics_braille.select_trace import TraceError
 from chess_piece_images import ChessPieceImages
 from input_gather import InputGather
+<<<<<<< HEAD
 from chessboard_stack import ChessboardStack
 from chess_error import ChessError
+=======
+
+class ChessboardDisplay:
+    master = None
+    window_list = []    # list of tuples (title, ChessboardDisplay)
+                        # in the order created
+    window_current = 0  # current choice index
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
 class ChessboardDisplay:
     base_display_id = 0         # Unique display id: 1...
@@ -106,15 +115,26 @@ class ChessboardDisplay:
         self.scan_ngame = 0     # Number of games scanned
         self.scan_is_force_next_game = False     # True - abandon current game
         self.setup_board_canvas(self.mw)
+<<<<<<< HEAD
         ###self.mw.bind('<KeyPress>', self.on_key_press)
         self.is_looping = False     # Cleared to stop loop
+=======
+        ChessboardDisplay.window_list.append(self)
+        self.mw.bind('<KeyPress>', self.on_key_press)
+        self.on_cmd = None          # To hold user display command processor
+        self.do_moves_cmd = None    # To hold user moves cmd
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         self.loop_interval = 250    # game move display interval (msec)     
         self.sel_short_desc = None  # Set if game selected
         self.sel_game = None        # Set if game selected
         self.is_scanning = False     # True = Scanning files in progress
+<<<<<<< HEAD
         self.is_scanning_paused = False  # True, scanning is pause
         self.is_display_fen = True  # True - display FEN
         self.is_legal_move_ck = True    # True - check for legal move as early as possible
+=======
+        self.is_display_fen = True  # True - display FEN
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         self.setup_menus()        
         self.squares_bounds = []         # square bounds array [ic][ir]
         border_size = self.sq_size//2
@@ -188,7 +208,11 @@ class ChessboardDisplay:
     def print_fen_cmd(self):
         """ print FEN for current game state
         """
+<<<<<<< HEAD
         self.display_dispatch(input="e")
+=======
+        self.buttonClick(input="e")
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     def move_cmd(self):
         """ Make move
@@ -253,6 +277,15 @@ class ChessboardDisplay:
         old_cmd = self.on_cmd
         self.on_cmd = on_cmd
         return old_cmd
+<<<<<<< HEAD
+=======
+                
+    def set_moves_cmd(self, on_cmd):
+        """ Setup do_moves link
+        :on_cmd: cmd(input) cmd
+        """
+        self.do_moves_cmd = on_cmd
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
     
     """
@@ -441,7 +474,10 @@ class ChessboardDisplay:
         menubar.add_cascade(label="Settings", menu=self.setting_menu)
         
         game_menu = tk.Menu(menubar, tearoff=0)
+<<<<<<< HEAD
         game_menu.add_command(label="New Window", command=self.new_window_cmd)
+=======
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         game_menu.add_command(label="Enter FEN", command=self.enter_fen_cmd)
         game_menu.add_command(label="Goto move", command=self.goto_move_cmd)
         game_menu.add_command(label="Print FEN", command=self.print_fen_cmd)
@@ -492,6 +528,7 @@ class ChessboardDisplay:
         """ Get and send FEN str
         """
         fen_str = self.fen_entry.get()
+<<<<<<< HEAD
         self.display_dispatch(f"get_fen {fen_str}")
         self.fen_frame.destroy()
 
@@ -499,6 +536,10 @@ class ChessboardDisplay:
         """ Create new independant window with current game state
         """
         self.display_dispatch("w")
+=======
+        self.buttonClick(f"get_fen: {fen_str}")
+        self.fen_frame.destroy()
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     def enter_fen_cmd(self):
         """ Setup board, using FEN string,
@@ -517,9 +558,14 @@ class ChessboardDisplay:
     def move_validate(self, spec):
         """ Move validate, returns adjusted move specification
         :spec: entered specification
+<<<<<<< HEAD
         :returns: "enter moves <updated value>"
         """
         ''' Can't convert from lowercase b may be a pawn
+=======
+        :returns: updated value
+        """
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         specs = spec.split()
         specs_new = []
         for spec in specs:
@@ -534,13 +580,18 @@ class ChessboardDisplay:
                 spec = spec_new
             specs_new.append(spec)
         spec_new = " ".join(specs_new)
+<<<<<<< HEAD
         '''
         spec_new = spec
         return f"enter_moves {spec_new}"
+=======
+        return spec_new
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
     
     def enter_moves_cmd(self):
         """ Provide move entering,
         """
+<<<<<<< HEAD
         if self.on_cmd is None:
             SlTrace.lg("Need to call set_moves_cmd before doing do_moves")
             return
@@ -552,6 +603,16 @@ class ChessboardDisplay:
                         title=f"{self.display_id}: Enter Moves",
                         entry_label="Move(s)",
                         xoff=x0,  yoff=y0)
+=======
+        if self.do_moves_cmd is None:
+            SlTrace.lg("Need to call set_moves_cmd before doing do_moves")
+            return
+        
+        ig = InputGather(mw=self.mw, call_with_input=self.do_moves_cmd,
+                        validate=self.move_validate,
+                        title="Enter Moves",
+                        entry_label="Move(s)")
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
 
     move_index = 0        # move index from selection
@@ -970,6 +1031,7 @@ if __name__ == '__main__':
     
     def test_on_cmd(input):
         SlTrace.lg(f"{input = }")
+<<<<<<< HEAD
         if input == "f":    # Read game(s) from file
             return
             
@@ -979,6 +1041,12 @@ if __name__ == '__main__':
 
         def test_moves_cmd(moves):
             SlTrace.lg(f"{moves = }")
+=======
+
+    def test_moves_cmd(moves):
+        SlTrace.lg(f"{moves = }")
+        
+>>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     from chessboard_stack import ChessboardStack
     cbs = ChessboardStack()    
@@ -994,6 +1062,7 @@ if __name__ == '__main__':
                                 games_dir="../games_test", scan_max_loops=2)
         cBd = cbd
         cbd.set_cmd(test_on_cmd)    # Set in each window
+        cbd.set_moves_cmd(test_moves_cmd)
         if cBd is None:
             cBd = cbd
         cbd.display_board()

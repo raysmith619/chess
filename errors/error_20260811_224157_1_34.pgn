@@ -1,0 +1,14 @@
+[Event "All-Russian"]
+[Site "St Petersburg"]
+[Date "1909.??.??"]
+[Round "8"]
+[White "Verlinsky, Boris"]
+[Black "Alekhine, Alexander"]
+[Result "0-1"]
+
+1. e4 e5 2. Nf3 Nc6 3. Bb5 a6 4. Bxc6 dxc6 5. d4 exd4 6. Qxd4 Qxd4 7. Nxd4 c5 8. Ne2 Bd7 9. b3 c4 10. bxc4 Ba4 11. c3 O-O-O 12. Nd2 Bc2 13. f3 Bc5 14. a4 Nf6 15. Ba3 Be3 16. Nf1 Ba7 17. a5 Rd3 18. c5 Rhd8 19. Kf2 Nd7 20. Ne3 Nxc5 21. Nd4 Bb3 22. Ke2 Rxc3 23. Bb2 Rxe3+ 24. Kxe3 Ne6 25. Ra3 Nxd4 26. Kf4 Bc5 27. Rha1 Ne2+ 28. Kg4 Be6+ 29. 0-1
+
+{
+Move: 10 e4 black decode_ret = 'Non-capture at e4 is occupied with P' spec error:None
+}
+
