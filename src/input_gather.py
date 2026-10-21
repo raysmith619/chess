@@ -15,12 +15,17 @@ class InputGather:
                  validate=None, mw=None,
                  title=None, entry_label=None,
 <<<<<<< HEAD
+<<<<<<< HEAD
                  clear_on_use=True,
                  display_id=None,
                  xoff=None, yoff=None):
 =======
                  clear_on_use=True):
 >>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
+=======
+                 clear_on_use=True,
+                 display_id=None):
+>>>>>>> 2f1786f (Solved multi window piece display problem)
         """ Input number of times, calling function each entry
         :call_with_input: function to call each entry
         :validate: validate function function to call which
@@ -33,20 +38,29 @@ class InputGather:
         :clear_on_use: True - clear entry after use
                 default: clear
 <<<<<<< HEAD
+<<<<<<< HEAD
         :display_id: display id to set display
                 default: no display_info sent
         :xoff: upper left corner xoffset
         :yoff: upper left corner yoffset
 =======
 >>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
+=======
+        :display_id: display id to set display
+                default: no display_info sent
+>>>>>>> 2f1786f (Solved multi window piece display problem)
         """
         self.call_with_input = call_with_input
         self.validate = validate
         self.clear_on_use = clear_on_use
 <<<<<<< HEAD
+<<<<<<< HEAD
         self.display_id = display_id
 =======
 >>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
+=======
+        self.display_id = display_id
+>>>>>>> 2f1786f (Solved multi window piece display problem)
         if mw is None:
             mw = tk.Tk()
         self.input_window = tk.Toplevel(mw)

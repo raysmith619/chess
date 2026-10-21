@@ -27,7 +27,11 @@ class ChessPieceImages:
         if mw is None:
             mw = tk.Tk()
             mw.withdraw()
+<<<<<<< HEAD
         self.mw = mw    
+=======
+            
+>>>>>>> 2f1786f (Solved multi window piece display problem)
         self.base_images = {}       # base images
         self.image_dict = {}        # Images by piece K=white king, q=black queen
         self.pieces_dir = pieces_dir
@@ -65,8 +69,11 @@ class ChessPieceImages:
             # Convert the image to a Tkinter-compatible format
             photo = ImageTk.PhotoImage(image)
             self.image_dict[piece_ch] = photo        # So image does not get lost
+<<<<<<< HEAD
             global image_dict
             image_dict[piece_ch] = photo        # global So image does not get lost
+=======
+>>>>>>> 2f1786f (Solved multi window piece display problem)
 
     def get_pieces(self):
         """ Get all pieces
@@ -134,4 +141,9 @@ if __name__ == '__main__':
         image = cpi2.get_piece_image(piece_ch)
         canvas2.create_image(im_x, im_y, anchor=tk.CENTER, image=image)
     root.update()
+<<<<<<< HEAD
     root.mainloop()
+=======
+    
+    root.mainloop()
+>>>>>>> 2f1786f (Solved multi window piece display problem)
