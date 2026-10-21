@@ -54,8 +54,10 @@ class ArrowHistory:
         adds to base number
         """
         self.display_direction_offset += 1  
-        if self.acp.cgd and self.acp.cgd.display_board_count > 1:
-            self.acp.cgd.display_board()
+        if hasattr(self.acp, "cgd"):
+            if hasattr(self.acp.cgd, "display_board_count"):
+                if self.acp.cgd and self.acp.cgd.display_board_count > 1:
+                    self.acp.cgd.display_board()
 
     def add(self, arrow):
         """ Add element
@@ -78,7 +80,7 @@ class ArrowHistory:
             display_fun = display_choice_d[disp_num]
         else:
             display_fun = display_choice_d[1] 
-        SlTrace.lg(f"direction: {disp_num=} {display_fun=}")
+        SlTrace.lg(f"direction: {disp_num=} {display_fun=}", "acp")
         return display_fun
         
                         
@@ -86,7 +88,7 @@ class ArrowHistory:
         """ Choose and then make move display
         """
         display_fun = self.get_display_fun() 
-        SlTrace.lg(f"direction: {display_fun=}")
+        SlTrace.lg(f"direction: {display_fun=}", "acp")
         display_fun()
         self.clear_history()
 
@@ -105,7 +107,7 @@ class ArrowHistory:
             from_center = self.acp.square_center(arrow.from_sq)
             to_center = self.acp.square_center(arrow.to_sq)
             pts = (*from_center, *to_center)
-            SlTrace.lg(f"add_arrow: {pts=}")
+            SlTrace.lg(f"add_arrow: {pts=}", "acp")
             #self.acp.create_line(*pts, fill=arrow.fill, width=arrow.width,
             #                     **arrow.kwargs)
             # 4 lines from a small square within the origin
@@ -182,7 +184,8 @@ class ArrowHistory:
                 
             if include_sqs and self.to_sq is not None:
                 """TBD"""
-            SlTrace.lg(f"show_spot({self.int_list(spot)} {label} {self.from_sq} to {self.to_sq})")
+            SlTrace.lg(f"show_spot({self.int_list(spot)} {label}"
+                       f" {self.from_sq} to {self.to_sq})", "acp")
                 
     def md_display_arrows_growing(self):
         """ Display direction as a narrow band of > from the from
@@ -472,7 +475,7 @@ class AnotatedChessPanel(ChessCanvasPanel):
         :**kwargs: additional attributes
         """
         if from_sq is None or to_sq is None:
-            SlTrace.lg("add_arrow: {from_sq=} {to_sq=} ignored")
+            SlTrace.lg("add_arrow: {from_sq=} {to_sq=} ignored", "acp")
             return
         
         history_element = ArrowElement(from_sq=from_sq, to_sq=to_sq,

@@ -44,7 +44,7 @@ from chess_settings_server import ChessSettingsServer
 from wx_chess_goto_move import ChessGotoMove
 from central_data import CentralData
 from chessboard_print import ChessboardPrint
-              
+from file_scanning import FileScanning              
                     
 class ChessGameDisplay(wx.Frame):
     base_display_id = 0         # Unique display id: 1...
@@ -118,7 +118,7 @@ class ChessGameDisplay(wx.Frame):
         """
         self.ccs = ccs      # ChessCentralShow
         self.cbs = cbs      #
-  
+        self.fs = FileScanning()    # Setup file scanning
         self.going_to_move_no = None    # Check if move
                                         # pause loop if at move
         ChessGameDisplay.base_display_id += 1
@@ -130,11 +130,9 @@ class ChessGameDisplay(wx.Frame):
         self._is_end_game = False   # Set when end of game condition arrises
         self.is_display_fen = True  # True - display FEN
         self.is_looping = False
-        self.is_scanning = False
         if title is None:
             title = "ChessGameDisplay"
         self.title = title
-        self.is_scanning_paused = False
         self.scan_file_name = None
         self.scan_is_force_next_game = False
         self.setting_is_stop_on_error = True  # stop on error
@@ -568,9 +566,75 @@ class ChessGameDisplay(wx.Frame):
             return
         
         files = dlg.GetPaths()
-        self.is_scanning = True     # Scanning files in progress
-        self.scan_loops = 0         # Keep count
-        self.scan_files_start(files=files)
+        self.fs.scan_files(files)
+        self.scan_do_move()
+
+    def is_scanning_paused(self):
+        """ check if scanning files
+        """
+        return self.fs.is_scanning_paused()
+
+    def set_scanning_paused(self, scanning=True):
+        """ enable/disable scanning files
+        """
+        self.fs.set_scanning_paused(scanning)
+
+    def is_scanning(self):
+        """ check if scanning files
+        """
+        return self.fs.is_scanning()
+
+    def set_scanning(self, scanning):
+        """ enable/disable scanning files
+        """
+        self.fs.set_scanning(scanning)
+            
+    def scan_do_move(self):
+        """ Call for next move to scan
+        """
+        SlTrace.lg(f"scan_do_move")
+        if not self.is_scanning():
+            SlTrace.lg("Not scanning - disregard")
+            return
+        
+        if self.is_scanning_paused():
+            SlTrace.lg("Scanning paused  - disregard")
+            return
+        
+        move = self.fs.next_move(self.scan_new_game,
+                                  self.scan_new_file,
+                                  self.scan_end_scan)
+        SlTrace.lg(f"{move=}")
+        if move is not None:
+            if self.ccs.do_move_spec(move) is None:
+                self.after_no_arg(
+                    self.chess_loop_interval,
+                    self.scan_do_move)
+                self.cdata.set_move_index_relative()         
+                self.cdata.update_display()
+        else:
+            SlTrace.lg("End of Scanning")
+            
+    def scan_new_file(self, file_name):
+        """ Called before each scanned file
+        :file_name: file path
+        """
+        self.scan_file_name = os.path.basename(file_name)
+        SlTrace.lg(f"scan_new_file:{self.scan_file_name}")
+
+    def scan_new_game(self, game):
+        """ Called before each scanned game
+        :game: PGN game object
+        """
+        SlTrace.lg(f"scan_new_game")
+        self.game = game
+        self.setup_display(game)
+        
+    def scan_end_scan(self):
+        """ Called at end of scan
+        """
+        SlTrace.lg(f"scan_end_scan")
+        self.set_scanning(False)
 
     def cmd_settings_window(self,_=None):
         SlTrace.lg("adw.cmd_settings_window")
@@ -602,6 +666,9 @@ class ChessGameDisplay(wx.Frame):
         else:
             short_desc = (f"{game.white} vs. {game.black}"
                         f" {game.event} {game.date}")
+        if self.is_scanning():
+            scan_desc = self.fs.scan_desc()
+            short_desc = f"Scanning> {scan_desc} {short_desc}"
         return short_desc
     
     def get_fastest_run(self):
@@ -719,6 +786,10 @@ class ChessGameDisplay(wx.Frame):
     def cmd_btn_loop(self, e=None):
         """ Start/restart looping
         """
+        if self.is_scanning() and self.is_scanning_paused():
+            self.scan_continue()
+            return
+        
         self.chess_loop()
 
 
@@ -755,7 +826,7 @@ class ChessGameDisplay(wx.Frame):
         
     def chess_loop_end_game_default(self):
         """ Called at end of game """
-        if self.is_scanning:
+        if self.is_scanning():
             self.scan_next_game()
         else:
             self.stop_looping()
@@ -796,7 +867,6 @@ class ChessGameDisplay(wx.Frame):
                 default: just list error
         Global controls:
         :self.is_looping: continue looping
-        :self.is_scanning: continue scanning files   
         """
         if loop_fun is None:
             loop_fun = self.chess_loop_fun_default
@@ -906,7 +976,8 @@ class ChessGameDisplay(wx.Frame):
         within the function, to effect an early exit.
         """
         self.is_looping = False
-        self.is_scanning = False
+        if self.is_scanning():
+            self.set_scanning_paused()
     
     def call_later_stop(self):    
         if self.call_later is not None:
@@ -1153,8 +1224,7 @@ class ChessGameDisplay(wx.Frame):
         self.include_pieces = include_pieces    
         '''bd_cur_half_move = self.get_cur_half_moves()
         self.cgm.set_half_move(
-            half_move=bd_cur_half_move,
-            ignore_select=True)
+            half_move=bd_cur_half_move)
         '''
         self.Thaw()
         self.display_board_count += 1    # How many times board displayed
@@ -1173,8 +1243,7 @@ class ChessGameDisplay(wx.Frame):
         self.setup_chess_goto_move()
         bd_cur_half_move = self.get_cur_half_moves()
         self.cgm.set_half_move(
-            half_move=bd_cur_half_move,
-            ignore_select=True)
+            half_move=bd_cur_half_move)
 
     def get_geo_whxy(self):
         """ Obtain geometry of display window
@@ -1213,7 +1282,7 @@ class ChessGameDisplay(wx.Frame):
         self.err_add(msg=desc)
         
         self.save_error_game(desc)
-        if self.is_scanning:
+        if self.is_scanning():
             if self.setting_is_stop_on_error:
                 self.scan_pause()
                 SlTrace.lg("Looping paused because of error")
@@ -1437,7 +1506,6 @@ class ChessGameDisplay(wx.Frame):
         self.scan_games_iter = None # Iterate through file games
         # Iterate through dir files
         self.scan_files_iter = iter(files)
-        self.is_scanning = True
         self.after_no_arg(0, self.scan_do_game)       # Start/continue move scan
 
     def scan_is_wanted_game(self, pnggame):
@@ -1451,29 +1519,13 @@ class ChessGameDisplay(wx.Frame):
         """ Continue scanning
         :move_interval: if present, update move interval
         """
-        self.is_scanning = True
-        self.is_scanning_paused = False
-        if move_interval is not None:
-            self.chess_loop_interval = move_interval
-        self.after_no_arg(0, self.scan_do_move)
-            
-    def scan_do_move(self):
-        """ Continue game moves scan
-        """
-        if not self.is_scanning:
-            return      # Scanning is over
-    
-        move = self.scan_get_move()            
-        if move is None:
-            self.after_no_arg(0, self.scan_files_start)  # start over
-            return
-        
-        self.scan_call(move)
+        self.set_scanning_paused(False)
+        self.scan_do_move()
             
     def scan_do_game(self):
         """ do next game
         """
-        if not self.is_scanning:
+        if not self.is_scanning():
             return      # Scanning is over
     
         game = self.scan_get_game()            
@@ -1492,7 +1544,7 @@ class ChessGameDisplay(wx.Frame):
         :move: move specification "END_GAME" for end of game
         """
         self.display_dispatch("scan_move", (move))
-        if self.is_scanning:
+        if self.is_scanning():
             self.after_no_arg(self.chess_loop_interval, self.scan_do_move)
 
     def scan_moves_iterator(self, pgngame):
@@ -1612,7 +1664,7 @@ class ChessGameDisplay(wx.Frame):
         if game is None:
             file = self.scan_get_file()
             if file is None:
-                self.is_scanning = False
+                self.set_scanning(False)
                 SlTrace.lg("End of Scanning")
                 return
             
@@ -1623,8 +1675,7 @@ class ChessGameDisplay(wx.Frame):
     def scan_pause(self):
         """ Pause scanning
         """
-        self.is_scanning = False
-        self.is_scanning_paused = True
+        self.set_scanning_paused()
                 
     def scan_dir_iter(self, games_dir):
         """ Iterate over directory, yielding next file path

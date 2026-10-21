@@ -64,7 +64,7 @@ class ChessGotoMove(wx.Frame):
         key = event.GetKeyCode()
         ch = chr(key)
         SlTrace.lg(f"\n\non_key_down:{key=}"
-                   f" {ch=}")
+                   f" {ch=}", "cgm")
         if not self.in_goto_num:
             if ch in "0123456789":
                 self.in_goto_num = True
@@ -117,7 +117,7 @@ class ChessGotoMove(wx.Frame):
             return
         
         elif key == ord("P"):
-            SlTrace.lg(f"Current move: HM:{self.get_cur_half_moves()}"
+            SlTrace.lg(f"Current move: HM:{self.get_cur_half_moves()}", "cgm"
                        )
             return
         
@@ -138,7 +138,7 @@ class ChessGotoMove(wx.Frame):
         event.Skip()
 
     def on_left_click(self, event):
-        SlTrace.lg("\n\non_left_click")
+        SlTrace.lg("\n\non_left_click", "cgm")
         self.processing_on_left_click = True
         event.Skip()
         
@@ -149,7 +149,7 @@ class ChessGotoMove(wx.Frame):
         
         irow = event.GetRow()
         icol = event.GetCol()
-        SlTrace.lg(f"Selected cell at Row: {irow}, Col: {icol}")
+        SlTrace.lg(f"Selected cell at Row: {irow}, Col: {icol}", "cgm")
         hm = self.row_col_to_hm(irow, icol)
         self.set_half_move(hm)
 
@@ -159,7 +159,7 @@ class ChessGotoMove(wx.Frame):
         :move_no_plus: number d+[bB]?
         :returns: True iff successful
         """
-        SlTrace.lg(f"goto_move_no_str({move_no_plus})")
+        SlTrace.lg(f"goto_move_no_str({move_no_plus})", "cgm")
         move_no_str = move_no_plus
         if move_no_str.upper().endswith("B"):
             moved = "black"
@@ -174,7 +174,7 @@ class ChessGotoMove(wx.Frame):
         except:
             return False
         
-        SlTrace.lg(f"{self.get_cur_half_moves()=}")
+        SlTrace.lg(f"{self.get_cur_half_moves()=}", "cgm")
         return True
     
     def hm_to_row_col(self, half_move):
@@ -237,7 +237,7 @@ class ChessGotoMove(wx.Frame):
                 Illegal moves are ignored
         :update: Update if successful default: True
         """
-        SlTrace.lg(f"set_half_move_relative({hm_adj=})")
+        SlTrace.lg(f"set_half_move_relative({hm_adj=})", "cgm")
         cur_hf = self.get_cur_half_moves()
         new_half_move = cur_hf + hm_adj
         self.set_half_move(new_half_move,
@@ -258,7 +258,7 @@ class ChessGotoMove(wx.Frame):
         if half_move < min_half_move or half_move > total_half_move:
             SlTrace.lg(f"half_move {half_move} is out of range"
                        f" {min_half_move}"
-                       f" - {total_half_move}")
+                       f" - {total_half_move}", "cgm")
             return False
         
         self.cur_half_moves = half_move
@@ -271,8 +271,8 @@ class ChessGotoMove(wx.Frame):
         """ Update local display, based on self.move_index
         """        
         irow, icol = self.hm_to_row_col(self.move_index)
-        SlTrace.lg(f"    {irow=}, {icol=}, hm={self.get_cur_half_moves()}")
-        SlTrace.lg(f"{irow=} {icol=}")
+        SlTrace.lg(f"    {irow=}, {icol=}, hm={self.get_cur_half_moves()}", "cgm")
+        SlTrace.lg(f"{irow=} {icol=}", "cgm")
         self.DoSetGridCursor(irow, icol)
         return True
     
@@ -291,7 +291,7 @@ class ChessGotoMove(wx.Frame):
         :moved: who "white", "black"
         :update: update display  default: true
         """
-        SlTrace.lg(f"set_move({move_no=}, {moved=})")
+        SlTrace.lg(f"set_move({move_no=}, {moved=})", "cgm")
         if moved == "white":
             icol = 1
         else:
@@ -308,7 +308,7 @@ class ChessGotoMove(wx.Frame):
         :moves: move specification string
         """
         self.total_half_moves = 0 # Updated as found
-        SlTrace.lg(f"set_moves: {game=} {moves=}")
+        SlTrace.lg(f"set_moves: {game=} {moves=}", "cgm")
         self.game = game
         move_pairs = []
         half_moves = 0
@@ -329,7 +329,7 @@ class ChessGotoMove(wx.Frame):
             half_moves = len(move_specs)
         self.total_half_moves = half_moves
         num_pair = len(move_pairs)    
-        SlTrace.lg(f"{num_pair=}")
+        SlTrace.lg(f"{num_pair=}", "cgm")
         # Create the grid widget
         self.grid = wx.grid.Grid(self)
         gf = self.grid.GetDefaultCellFont()
@@ -363,10 +363,10 @@ class ChessGotoMove(wx.Frame):
         # Bind cell selection
         
     def on_close_window(self, event=None):
-        SlTrace.lg("wx_chess_goto_move.py: on_close_window")
+        SlTrace.lg("wx_chess_goto_move.py: on_close_window", "cgm")
         if self.help_win is not None:
             SlTrace.lg("wx_chess_goto_move.py calling"
-                       " help_win.Close")
+                       " help_win.Close", "cgm")
             self.chess_goto_move is not None
             self.help_win.Close()
         if self.cdata is not None:
@@ -380,7 +380,7 @@ class ChessGotoMove(wx.Frame):
         :icol: col startgin with 0 for move_no
         :ignore_select: ignore select event  default: True
         """
-        SlTrace.lg(f"DoSetGridCursor({irow=}, {icol=})")
+        SlTrace.lg(f"DoSetGridCursor({irow=}, {icol=})", "cgm")
         prev_ignore_select = self.ignore_select
         self.ignore_select = ignore_select
         self.grid.SetGridCursor(irow, icol)
@@ -463,7 +463,7 @@ if __name__ == "__main__":
         
     def on_close_window(self, event):
         SlTrace.lg("chess_goto_move.py:"
-                   " on_close_window")
+                   " on_close_window", "cgm")
         self.cdata.cgd.chess_goto_move = None
         if self.help_win is not None:
             self.help_win.Destroy()
@@ -472,7 +472,7 @@ if __name__ == "__main__":
         def cgm_exit(self): # Close main display ChessGameDisplay
             """ Stub
             """
-            SlTrace.lg("cdata.cgd: cgm_exit called")
+            SlTrace.lg("cdata.cgd: cgm_exit called", "cgm")
         
     app = wx.App()
     cgm = ChessGotoMove(None, game=demo_game)

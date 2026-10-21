@@ -224,7 +224,7 @@ class ChessCentralShow:
         if self.cbd.going_to_move_no == cm.move_no:
             SlTrace.lg(f"going_to {cm.move_no =}")        
             SlTrace.lg(f"{cm}")
-            if self.cbd.is_scanning:
+            if self.cbd.is_scanning():
                 self.cbd.scan_pause()
             '''
             else:
@@ -287,11 +287,9 @@ class ChessCentralShow:
             ck_msg = self.cbd.ck_bd_setup()
             if ck_msg:
                 SlTrace.lg(f"ERROR: Unexpected startup {ck_msg}")
-                ###self.cbd.is_looping = False
-                ###self.cbd.is_scanning = False
         new_move_index = self.cbd.cdata.chess_move()
         if new_move_index < 0:
-            if self.cbd.is_scanning:
+            if self.cbd.is_scanning():
                 self.cbd.scan_next_game()
             else:
                 self.restart_game()
@@ -302,7 +300,7 @@ class ChessCentralShow:
         if err_msg is not None:
             SlTrace.lg(f"ERROR: {err_msg=}")
             self.cbd.is_looping = 0
-            self.cbd.is_scanning = 0
+            self.cbd.set_scanning(False)
         
     def loop_game(self):
         """ Start looping game
