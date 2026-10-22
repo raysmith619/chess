@@ -4,3 +4,4 @@ log/*
 *.properties
 *.pyc
 src/_OLD/*
+errors/*
