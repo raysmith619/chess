@@ -4,28 +4,15 @@ Facilitate repetitive input action
 
 """
 import tkinter as tk       # Get all tkinter via tk.
-<<<<<<< HEAD
 from graphics_braille.select_trace import SlTrace
-=======
-from select_trace import SlTrace
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
 class InputGather:
     def __init__(self, call_with_input,
                  validate=None, mw=None,
                  title=None, entry_label=None,
-<<<<<<< HEAD
-<<<<<<< HEAD
-                 clear_on_use=True,
-                 display_id=None,
-                 xoff=None, yoff=None):
-=======
-                 clear_on_use=True):
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
+                 xoff=None, yoff=None,
                  clear_on_use=True,
                  display_id=None):
->>>>>>> 2f1786f (Solved multi window piece display problem)
         """ Input number of times, calling function each entry
         :call_with_input: function to call each entry
         :validate: validate function function to call which
@@ -37,30 +24,19 @@ class InputGather:
         :entry_label: optional label to left of entry
         :clear_on_use: True - clear entry after use
                 default: clear
-<<<<<<< HEAD
-<<<<<<< HEAD
+
         :display_id: display id to set display
                 default: no display_info sent
         :xoff: upper left corner xoffset
         :yoff: upper left corner yoffset
-=======
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
         :display_id: display id to set display
                 default: no display_info sent
->>>>>>> 2f1786f (Solved multi window piece display problem)
         """
         self.call_with_input = call_with_input
         self.validate = validate
         self.clear_on_use = clear_on_use
-<<<<<<< HEAD
-<<<<<<< HEAD
+
         self.display_id = display_id
-=======
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-        self.display_id = display_id
->>>>>>> 2f1786f (Solved multi window piece display problem)
         if mw is None:
             mw = tk.Tk()
         self.input_window = tk.Toplevel(mw)
@@ -82,11 +58,8 @@ class InputGather:
         ok_button = tk.Button(self.input_window, text="OK",
                         command=self.process_input, fg="blue", bg="light gray")
         ok_button.pack(side=tk.RIGHT)
-<<<<<<< HEAD
         if xoff is not None and yoff is not None:
             self.input_window.geometry(f"+{xoff}+{yoff}")
-=======
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     def process_input(self, e=None):
         """ Process current input string,

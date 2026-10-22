@@ -21,23 +21,15 @@ from graphics_braille.select_trace import SlTrace
 from graphics_braille.select_trace import TraceError
 from chess_piece_images import ChessPieceImages
 from input_gather import InputGather
-<<<<<<< HEAD
-<<<<<<< HEAD
+
 from chessboard_stack import ChessboardStack
 from chess_error import ChessError
-=======
-=======
-from chessboard_stack import ChessboardStack
->>>>>>> 2f1786f (Solved multi window piece display problem)
+
 
 class ChessboardDisplay:
     window_list = []    # list of tuples (title, ChessboardDisplay)
                         # in the order created
     window_current = 0  # current choice index
-<<<<<<< HEAD
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-
-class ChessboardDisplay:
     base_display_id = 0         # Unique display id: 1...
     display_d = {}              # dictionary of ChessboardDisplay by id
 
@@ -61,17 +53,9 @@ class ChessboardDisplay:
         
         return None
 
-            
     """ Setup the piece images, currently size fixed
     """
     def __init__(self,
-=======
-        
-    """ Setup the piece images, currently size fixed
-    """
-    def __init__(self,
-                 display_id,
->>>>>>> 2f1786f (Solved multi window piece display problem)
                  chess_board_stack,
                  mw = None,
                  from_display=None,
@@ -86,41 +70,24 @@ class ChessboardDisplay:
                  scan_max_loops=None,
                 ):
         """ Create new chessboard display
-<<<<<<< HEAD
-=======
-        :display_id: unique id for display number
->>>>>>> 2f1786f (Solved multi window piece display problem)
         :chess_board_stack: games stack (ChessboardStack)
         :mw: basis window
         :from_display: basis chessboard display window
         """
-<<<<<<< HEAD
         
         ChessboardDisplay.base_display_id += 1    # ids: 1..
         self.display_id = self.base_display_id
         ChessboardDisplay.display_d[self.display_id] = self
-=======
-        self.display_id = display_id
->>>>>>> 2f1786f (Solved multi window piece display problem)
         assert(chess_board_stack is not None)
         assert(isinstance(chess_board_stack, ChessboardStack))
         self.cbs = chess_board_stack
         self.on_cmd = None          # To hold user display command processor
-<<<<<<< HEAD
-=======
-        self.do_moves_cmd = None    # To hold user moves cmd
->>>>>>> 2f1786f (Solved multi window piece display problem)
         self.is_printing_board = True
         self.is_printing_fen = True
         if from_display is not None:
             mw = tk.Toplevel(from_display.mw)
             if hasattr(from_display, "on_cmd"):
                 self.on_cmd = from_display.on_cmd          # inherit action functions
-<<<<<<< HEAD
-=======
-            if hasattr(from_display, "do_moves"):
-                self.do_moves_cmd = from_display.do_moves  
->>>>>>> 2f1786f (Solved multi window piece display problem)
         elif mw is None:
             mw = tk.Tk()
             mw.withdraw()
@@ -128,11 +95,7 @@ class ChessboardDisplay:
             mw = tk.Toplevel(self.mw)
         self.mw = mw
         mw.bind("<Enter>", self.window_entry_cmd)
-<<<<<<< HEAD
         self.cpi = ChessPieceImages(mw=mw)       # Must come after default window setup
-=======
-        self.cpi = ChessPieceImages()       # Must come after default window setup
->>>>>>> 2f1786f (Solved multi window piece display problem)
         self.sq_size = sq_size
         self.light_sq = light_sq
         self.dark_sq = dark_sq
@@ -147,35 +110,20 @@ class ChessboardDisplay:
         self.scan_ngame = 0     # Number of games scanned
         self.scan_is_force_next_game = False     # True - abandon current game
         self.setup_board_canvas(self.mw)
-<<<<<<< HEAD
-        ###self.mw.bind('<KeyPress>', self.on_key_press)
         self.is_looping = False     # Cleared to stop loop
-=======
-        ChessboardDisplay.window_list.append(self)
+        self.window_list.append(self)
         self.mw.bind('<KeyPress>', self.on_key_press)
-<<<<<<< HEAD
         self.on_cmd = None          # To hold user display command processor
         self.do_moves_cmd = None    # To hold user moves cmd
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
->>>>>>> 2f1786f (Solved multi window piece display problem)
         self.loop_interval = 250    # game move display interval (msec)     
         self.sel_short_desc = None  # Set if game selected
         self.sel_game = None        # Set if game selected
         self.is_scanning = False     # True = Scanning files in progress
-<<<<<<< HEAD
         self.is_scanning_paused = False  # True, scanning is pause
         self.is_display_fen = True  # True - display FEN
         self.is_legal_move_ck = True    # True - check for legal move as early as possible
-=======
-        self.is_display_fen = True  # True - display FEN
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         self.setup_menus()        
-<<<<<<< HEAD
         self.squares_bounds = []         # square bounds array [ic][ir]
-=======
-        squares_bounds = []         # square bounds array [ic][ir]
->>>>>>> 2f1786f (Solved multi window piece display problem)
         border_size = self.sq_size//2
         x_left = border_size
         y_top = border_size        
@@ -207,6 +155,11 @@ class ChessboardDisplay:
                                     text=file_label, font=self.rank_font)
             self.squares_bounds.append(sb_col)   # Add next column to right
 
+    def set_moves_cmd(self, on_cmd):
+        """ Setup do_moves link
+        :on_cmd: cmd(input) cmd
+        """
+        self.do_moves_cmd = on_cmd
 
     def setup_errors(self, errors_dir):
         """ Setup errors directory
@@ -236,15 +189,10 @@ class ChessboardDisplay:
         with a command including our id
         Only send if on_cmd is set.
         """
-<<<<<<< HEAD
         return      # DROPPED in favor of adding id to each command
     
         if self.on_cmd is not None:
             self.display_dispatch(input=f"we {self.display_id}")
-=======
-        if self.on_cmd is not None:
-            self.buttonClick(input=f"we {self.display_id}")
->>>>>>> 2f1786f (Solved multi window piece display problem)
     
     """ Setup keyboard/button commands
     """
@@ -252,11 +200,7 @@ class ChessboardDisplay:
     def print_fen_cmd(self):
         """ print FEN for current game state
         """
-<<<<<<< HEAD
         self.display_dispatch(input="e")
-=======
-        self.buttonClick(input="e")
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         
     def move_cmd(self):
         """ Make move
@@ -321,15 +265,6 @@ class ChessboardDisplay:
         old_cmd = self.on_cmd
         self.on_cmd = on_cmd
         return old_cmd
-<<<<<<< HEAD
-=======
-                
-    def set_moves_cmd(self, on_cmd):
-        """ Setup do_moves link
-        :on_cmd: cmd(input) cmd
-        """
-        self.do_moves_cmd = on_cmd
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
 
     
     """
@@ -420,7 +355,6 @@ class ChessboardDisplay:
         if include_pieces:
             self.display_pieces()
         self.mw.update()            # Make visible
-<<<<<<< HEAD
     
     def get_geo_whxy(self):
         """ Obtain geometry of display window
@@ -430,8 +364,6 @@ class ChessboardDisplay:
         geo_whxy_ints = [int(vs) for vs in geo_whxy]
         return geo_whxy_ints
 
-=======
->>>>>>> 2f1786f (Solved multi window piece display problem)
         
     def err_add(self, msg=None):
         """ Set and Count errors
@@ -521,14 +453,8 @@ class ChessboardDisplay:
         menubar.add_cascade(label="Settings", menu=self.setting_menu)
         
         game_menu = tk.Menu(menubar, tearoff=0)
-<<<<<<< HEAD
-<<<<<<< HEAD
+
         game_menu.add_command(label="New Window", command=self.new_window_cmd)
-=======
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-        game_menu.add_command(label="New Window", command=self.new_window_cmd)
->>>>>>> 2f1786f (Solved multi window piece display problem)
         game_menu.add_command(label="Enter FEN", command=self.enter_fen_cmd)
         game_menu.add_command(label="Goto move", command=self.goto_move_cmd)
         game_menu.add_command(label="Print FEN", command=self.print_fen_cmd)
@@ -579,7 +505,6 @@ class ChessboardDisplay:
         """ Get and send FEN str
         """
         fen_str = self.fen_entry.get()
-<<<<<<< HEAD
         self.display_dispatch(f"get_fen {fen_str}")
         self.fen_frame.destroy()
 
@@ -587,18 +512,13 @@ class ChessboardDisplay:
         """ Create new independant window with current game state
         """
         self.display_dispatch("w")
-=======
         self.buttonClick(f"get_fen: {fen_str}")
         self.fen_frame.destroy()
-<<<<<<< HEAD
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
 
     def new_window_cmd(self):
         """ Create new independant window with current game state
         """
         self.buttonClick("w")
->>>>>>> 2f1786f (Solved multi window piece display problem)
         
     def enter_fen_cmd(self):
         """ Setup board, using FEN string,
@@ -617,14 +537,9 @@ class ChessboardDisplay:
     def move_validate(self, spec):
         """ Move validate, returns adjusted move specification
         :spec: entered specification
-<<<<<<< HEAD
         :returns: "enter moves <updated value>"
         """
         ''' Can't convert from lowercase b may be a pawn
-=======
-        :returns: updated value
-        """
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         specs = spec.split()
         specs_new = []
         for spec in specs:
@@ -639,21 +554,17 @@ class ChessboardDisplay:
                 spec = spec_new
             specs_new.append(spec)
         spec_new = " ".join(specs_new)
-<<<<<<< HEAD
         '''
         spec_new = spec
         return f"enter_moves {spec_new}"
-=======
-        return spec_new
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
     
     def enter_moves_cmd(self):
         """ Provide move entering,
         """
-<<<<<<< HEAD
         if self.on_cmd is None:
             SlTrace.lg("Need to call set_moves_cmd before doing do_moves")
             return
+        
         w,h,x,y = self.get_geo_whxy()
         x0 = int(x + w/2)
         y0 = y + 10
@@ -662,7 +573,6 @@ class ChessboardDisplay:
                         title=f"{self.display_id}: Enter Moves",
                         entry_label="Move(s)",
                         xoff=x0,  yoff=y0)
-=======
         if self.do_moves_cmd is None:
             SlTrace.lg("Need to call set_moves_cmd before doing do_moves")
             return
@@ -670,13 +580,8 @@ class ChessboardDisplay:
         ig = InputGather(mw=self.mw, call_with_input=self.do_moves_cmd,
                         validate=self.move_validate,
                         title="Enter Moves",
-<<<<<<< HEAD
-                        entry_label="Move(s)")
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-                        entry_label="Move(s)",
+                       entry_label="Move(s)",
                         display_id=self.display_id)
->>>>>>> 2f1786f (Solved multi window piece display problem)
         
 
     move_index = 0        # move index from selection
@@ -1060,7 +965,6 @@ class ChessboardDisplay:
         Uses chessboard stack
         """
         return self.cbs.get_bd()
-<<<<<<< HEAD
 
     def get_move_no(self):
         """ Get current board's move number
@@ -1071,9 +975,6 @@ class ChessboardDisplay:
         
         return bd.get_move_no()
         
-=======
-    
->>>>>>> 2f1786f (Solved multi window piece display problem)
     def mainloop(self):
         """ Primary wait loop
         """
@@ -1099,7 +1000,6 @@ if __name__ == '__main__':
     
     def test_on_cmd(input):
         SlTrace.lg(f"{input = }")
-<<<<<<< HEAD
         if input == "f":    # Read game(s) from file
             return
             
@@ -1107,18 +1007,13 @@ if __name__ == '__main__':
             cBd.new_window_cmd()
             return
 
-        def test_moves_cmd(moves):
-            SlTrace.lg(f"{moves = }")
-=======
+    def test_moves_cmd(moves):
+        SlTrace.lg(f"{moves = }")
+
 
     def test_moves_cmd(moves):
         SlTrace.lg(f"{moves = }")
         
-<<<<<<< HEAD
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-        
-=======
->>>>>>> 2f1786f (Solved multi window piece display problem)
     from chessboard_stack import ChessboardStack
     cbs = ChessboardStack()    
     mw = root   # first time
@@ -1128,11 +1023,7 @@ if __name__ == '__main__':
         cbs.push_bd(cb)
         cbp = ChessboardPrint(cb)
         cbp.display_board()
-<<<<<<< HEAD
         cbd = ChessboardDisplay(cbs, from_display=cBd, title=f"pieces={pieces}",
-=======
-        cbd = ChessboardDisplay(len(cbds), cbs, from_display=cBd, title=f"pieces={pieces}",
->>>>>>> 2f1786f (Solved multi window piece display problem)
                                 mw=mw,
                                 games_dir="../games_test", scan_max_loops=2)
         cBd = cbd
@@ -1141,11 +1032,8 @@ if __name__ == '__main__':
         if cBd is None:
             cBd = cbd
         cbd.display_board()
-<<<<<<< HEAD
         geos = cbd.get_geo_whxy()
         SlTrace.lg(f"{cbd.display_id}: {geos}")
-=======
->>>>>>> 2f1786f (Solved multi window piece display problem)
         SlTrace.lg(f"After pieces={pieces}")
     #root.withdraw()
     cBd.mainloop()

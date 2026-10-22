@@ -383,11 +383,7 @@ class ChessMoveNotation:
             self.err_count += 1
             if self.err_first is None:
                 self.err_first = msg
-<<<<<<< HEAD
                 self.err_first_move_no = self.get_move_no()
-=======
-                self.err_first_move_no = self.cm.get_move_no()
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
             msg = f"{self.err_first_move_no}: {msg}"
         return msg    
 

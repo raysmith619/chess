@@ -382,8 +382,3 @@ if __name__ == '__main__':
     except:
         if_fail_report("Failed import from initial Chessboard")
     
-<<<<<<< HEAD
-=======
-                                    
-    test_summary()
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)

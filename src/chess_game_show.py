@@ -95,17 +95,10 @@ args = parser.parse_args()             # or die "Illegal options"
 file = args.file
 moves = args.moves
 quit_on_fail = args.quit_on_fail
-<<<<<<< HEAD
 
 
 # Support board/display access
 cbs = None
-=======
-cbds = []       # Display stack
-cbds.append(None)   
-cbs = []              # Current chessboard stack
-cb = None
->>>>>>> 2f1786f (Solved multi window piece display problem)
 cbd = None
 move_spec_list = []
 
@@ -121,16 +114,8 @@ def setup_display(moves=None):
     cbs = ChessboardStack()
     cbs.push_bd(cb)
     cb.standard_setup()         # Starting position
-<<<<<<< HEAD
-<<<<<<< HEAD
+
     cbd = ChessboardDisplay(cbs, title="Begin Game", scan_max_loops=scan_max_loops)
-=======
-    cbd = ChessboardDisplay(cb, title="Begin Game", scan_max_loops=scan_max_loops)
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-    cbd = ChessboardDisplay(len(cbds), cbs, title="Begin Game", scan_max_loops=scan_max_loops)
-    cbds.append(cbd)
->>>>>>> 2f1786f (Solved multi window piece display problem)
     if cbd.is_display_fen:
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
@@ -141,7 +126,7 @@ def setup_display(moves=None):
     cbd.display_board()
     
     
-def setup_board(move_specs):
+def setup_board(move_specs=None):
     """ Setup new game board
     :move_specs: list of move specifications
     """
@@ -187,7 +172,6 @@ def display_board(desc=None, new_display=False):
     
     bd_str = cbp.display_board_str(display_options=display_options)
     gdesc = "" if game_desc is None else game_desc
-<<<<<<< HEAD
     if cbd.scan_nfile > 0:
         desc = f"{cbd.scan_nfile:2} {cbd.scan_ngame:2}    "
     desc = f"{desc:<15}"  + gdesc
@@ -196,30 +180,14 @@ def display_board(desc=None, new_display=False):
                    +desc+
                    "\n"+bd_str, replace_non_ascii=None)
     if cbd.is_printing_fen:
-=======
-    desc = f"{desc:<15} {gdesc}"
-<<<<<<< HEAD
-    SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
-    if cbd.is_display_fen:
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-    if cbd.is_printing_board:
-        SlTrace.lg("\n"+desc+"\n"+bd_str, replace_non_ascii=None)
-    if cbd.is_printing_fen:
->>>>>>> 2f1786f (Solved multi window piece display problem)
+        desc = f"{desc:<15} {gdesc}"
         fen_str = cb.board_to_fen_str()
         SlTrace.lg(f"{fen_str}\n")
     if new_display:
         cbs = cbs.copy()
         cb = cbs.get_bd()
-<<<<<<< HEAD
         cbd = ChessboardDisplay(cbs, from_display=cbd)
     cbd.display_board(title=desc)    # Use current state
-=======
-        cbd = ChessboardDisplay(len(cbds), cbs, from_display=cbd)
-        cbds.append(cbd)        
-    cbd.display_board(title=desc, cb=cb)    # Use current state
->>>>>>> 2f1786f (Solved multi window piece display problem)
     move_interval = cbd.loop_interval
     cbd.update()
     pass
@@ -261,7 +229,6 @@ def do_move(cm_or_spec=None):
             return None
         
     if isinstance(cm_or_spec, str):
-<<<<<<< HEAD
         cb = cbs.get_bd()
         if cb is None:
             cb = Chessboard()
@@ -269,11 +236,6 @@ def do_move(cm_or_spec=None):
         cm = ChessMove(cb, spec=cm_or_spec)        
         SlTrace.lg(f"{cm}")
         cb.cm = cm
-=======
-        cbs.push_bd()
-        cm = ChessMove(cbs.get_bd(), spec=cm_or_spec)
-        SlTrace.lg(f"{cm}")
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         if (decode_ret:=cm.decode(cm_or_spec)):
             err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
             SlTrace.lg(f"{err_prefix} {decode_ret = }")
@@ -285,11 +247,7 @@ def do_move(cm_or_spec=None):
     else:
         cm = cm_or_spec
     if cm is not None and cm.game_result is not None:
-<<<<<<< HEAD
         #stop_loop()
-=======
-        stop_loop()
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
         return None
     return cm
         
@@ -471,7 +429,6 @@ def do_moves(input):
     """
     move_specs = ChessMoveNotation.game_to_specs(input)
     for move_spec in move_specs:
-<<<<<<< HEAD
         if (err:=do_move_spec(move_spec)):
             SlTrace.lg(f"Stop with error:{err}")
             break
@@ -482,19 +439,16 @@ def new_window():
     """
     display_board(desc="New Window", new_display=True)
                     
-=======
-        while (err:=do_move_spec(move_spec)):
-            SlTrace.lg(f"Stop with error:{err}")
-            break
+    while (err:=do_move_spec(move_spec)):
+        SlTrace.lg(f"Stop with error:{err}")
+        break
     display_board()            
-<<<<<<< HEAD
-                
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
+
 def display_cmd_proc(input):
     """ Process display commands
         Note to synchronize display window, all calls should include display id
-=======
-
+    """
+    
 def new_window():
     """ Create new independant window with current game state
     """
@@ -502,7 +456,6 @@ def new_window():
                     
 def display_cmd_proc(input):
     """ Process display commands
->>>>>>> 2f1786f (Solved multi window piece display problem)
     :input: command string [<display id>] removed if present
         s,n: do_move
         u: undo move
@@ -511,8 +464,6 @@ def display_cmd_proc(input):
         e: print FEN
         goto_move_idx n: goto move index
         get_fen: FEN: load state, given the FEN notation
-<<<<<<< HEAD
-<<<<<<< HEAD
         w: create new window
         we <display_id>: Set context to new display        
     """
@@ -529,19 +480,6 @@ def display_cmd_proc(input):
             
             cbd = cbdisp
             cbs = cbd.cbs         
-=======
-        
-    """
->>>>>>> 14d10b3 (Better FEN support, added ChessFEN with chess_fen.py)
-=======
-        w: create new window
-        we <display_id>: Set context to new display        
-    """
-    global cbd, cbs
-    if (match_input:=re.match(r'(.*)(\[[^]]*\])$', input)):
-        input, display_info = match_input.groups()
-        SlTrace.lg(f"input: {input} display_info: {display_info}")
->>>>>>> 2f1786f (Solved multi window piece display problem)
     fen_cmd_prefix = "get_fen: "
     goto_move_idx_prefix = "goto_move_idx"
     cm = None
@@ -589,18 +527,6 @@ def display_cmd_proc(input):
         new_window()
         return
     
-<<<<<<< HEAD
-=======
-    elif (match_we:=re.match(r'we\s+(.*)$', input)) is not None:
-        id_str = match_we.group(1)
-        display_id = int(id_str)
-        if display_id >= len(cbds):
-            raise ChessError(f"Display_id {display_id} out of range")
-        SlTrace.lg(f"Display_id {display_id} ")
-        cbd = cbds[display_id]
-        cbs = cbd.cbs
-    
->>>>>>> 2f1786f (Solved multi window piece display problem)
     elif input == 's' or input == 'n':
         cm = do_move()
     elif input == 'u':
