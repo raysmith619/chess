@@ -607,7 +607,7 @@ if __name__ == "__main__":
         if cm.decode(move_spec):
            SlTrace.lg(f"{move_no_str}Error: {move_spec}: {cm.err}")
         else:
-            SlTrace.lg(f"{move_no_str}{cm}")
+            SlTrace.lg(f"{move_no_str}{cm}", "chess_move")
                 
         if cm.make_move():
             SlTrace.lg(cm.err)
