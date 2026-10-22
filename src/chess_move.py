@@ -531,7 +531,7 @@ class ChessMove:
         :dest2_sq_mod: optional alternate piece for dest
         :returns: None if successful, else err msg
         """
-        SlTrace.lg(f"    make_move: {self.spec=}")    
+        SlTrace.lg(f"    make_move: {self.spec=}", "make_move")    
         if orig_sq is None:
             orig_sq = self.orig_sq
         if dest_sq is None:

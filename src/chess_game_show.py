@@ -234,7 +234,7 @@ def do_move(cm_or_spec=None):
             cb = Chessboard()
         cb = cbs.push_bd(cb)
         cm = ChessMove(cb, spec=cm_or_spec)        
-        SlTrace.lg(f"{cm}")
+        SlTrace.lg(f"{cm}", "chess_move")
         cb.cm = cm
         if (decode_ret:=cm.decode(cm_or_spec)):
             err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
@@ -258,7 +258,7 @@ def do_move_spec(spec):
     """
     cbs.push_bd()
     cm = ChessMove(cbs.get_bd(), spec=spec)
-    SlTrace.lg(f"{cm}")
+    SlTrace.lg(f"{cm}", "chess_move")
     if (decode_ret:=cm.decode(spec)):
         err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
         SlTrace.lg(f"{err_prefix} {decode_ret = }")

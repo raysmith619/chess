@@ -252,7 +252,7 @@ class ChessGotoMove(wx.Frame):
         :returns: True iff successful
         """
         SlTrace.lg(f"set_half_move:{half_move=},"
-                   f" beginning  hm ={self.get_cur_half_moves()}")
+                   f" beginning  hm ={self.get_cur_half_moves()}", "cgm")
         total_half_move = self.get_total_half_moves()
         min_half_move = 0
         if half_move < min_half_move or half_move > total_half_move:

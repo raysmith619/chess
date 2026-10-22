@@ -188,7 +188,7 @@ class ChessCentralShow:
         :cm_or_spec: move(ChessMove) or move specifiction
             default: get next move
         """
-        SlTrace.lg(f"do_move({cm_or_spec =})")
+        SlTrace.lg(f"do_move({cm_or_spec =})", "move")
         if self.cbd.is_end_game():
             self.display_board(move_type=self.cbd.END_GAME)
             return None

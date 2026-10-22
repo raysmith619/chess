@@ -798,7 +798,7 @@ class ChessGameDisplay(wx.Frame):
         do game loop
         """
         self.chess_loop_count += 1
-        SlTrace.lg(f"chess_loop_count: {self.chess_loop_count}")
+        SlTrace.lg(f"chess_loop_count: {self.chess_loop_count}", "loop_count")
         wx.GetApp().Yield()     # Allow display(s) refresh
         if self.move_index == 1:    # Begin Game
             ck_msg = self.ck_bd_setup()
