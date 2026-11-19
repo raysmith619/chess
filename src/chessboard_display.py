@@ -717,7 +717,7 @@ class ChessboardDisplay:
             file_text = pgn.dumps(game)
             print(file_text, file=f)
             if desc is not None:
-                print("\n{\n" + desc + "\n}\n", file=f)
+                print(f"\n {desc}", file=f) # '{' comments make too long move specs for go_to display
         
     def scan_files_cmd(self):
         """ Scan chess files in games directory

@@ -1,0 +1,10 @@
+[Event "Test 2"]
+[Date "2026.11.02"]
+[White "Mr White"]
+[Black "Mr Black"]
+[Result "1/2-1/2"]
+
+1. e4 e5
+2. f4 e5xf4
+3. Nf3 Bc5
+4. 1/2-1/2

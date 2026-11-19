@@ -337,7 +337,7 @@ def scan_move(move):
     if do_move(move) is None:
         #scan_pause()
         cm = cbs.get_move()
-        SlTrace.lg(f"{cm}")
+        SlTrace.lg(f"{cm}", "move")
         #error_show(f"{cm}")
         return
     

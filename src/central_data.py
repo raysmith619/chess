@@ -16,6 +16,7 @@ class CentralData:
         self.ccs = ccs
         self.cgm = cgm      # Setting may be delayed till cgm is created
         self.move_index = move_index
+        self.game_end_index = 0   # Index of last move
 
     def set_cgm(self, cgm):
         self.cgm = cgm
@@ -103,10 +104,20 @@ class CentralData:
         """ Centralized distribution for key events
         :event: """
         self.cgm.on_key_down(event)
-        
-    def restart_game(self, source="cgd"):
-        """ Restart chess game
+
+    def at_game_end(self):
+        """ Check if at end of game
         """
+        if self.move_index >= len(self.game.moves)-1:
+            return True
+        
+        return False
+            
+    def restart_game(self, game, source="cgd"):
+        """ Restart chess game
+        :game: game (PGN) 
+        """
+        self.game = game
         self.chess_goto_move(0, source=source)
         
     def update_display(self, source="cgd"):

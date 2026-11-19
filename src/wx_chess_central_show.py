@@ -112,7 +112,7 @@ class ChessCentralShow:
                 OR
             <move_no>: <white move spec> <black move spec>
         """
-        return self.cbs.get_move_desc()
+        return self.cbs.get_move_desc()   # Move just finished
 
     def display_board(self, desc=None, new_display=False,
                     move_type=None):
@@ -191,6 +191,7 @@ class ChessCentralShow:
         SlTrace.lg(f"do_move({cm_or_spec =})", "move")
         if self.cbd.is_end_game():
             self.display_board(move_type=self.cbd.END_GAME)
+            SlTrace.lg(f"do_move(is_end_game)", "move")
             return None
             
         if cm_or_spec is None:
@@ -242,7 +243,7 @@ class ChessCentralShow:
         """
         self.cbs.push_bd()
         cm = ChessMove(self.cbs.get_bd(), spec=spec)
-        SlTrace.lg(f"{cm}")
+        SlTrace.lg(f"{cm}", "move")
         if (decode_ret:=cm.decode(spec)):
             err_prefix = f"Move: {cm.get_move_no()} {cm.spec} {cm.get_to_move()}"
             SlTrace.lg(f"{err_prefix} {decode_ret = }")
@@ -413,14 +414,14 @@ class ChessCentralShow:
         :move_no: table index, 0 - game beginning, before white's first move
         :moved: "-","white","black" last moved default: "white"
         """
-        SlTrace.lg(f"ccs: cmd_goto_move({move_no =}, {moved=})")
+        SlTrace.lg(f"ccs: cmd_goto_move({move_no =}, {moved=})", "goto")
         if move_no < 1:
             move_index = 0
         else:
             move_index = (move_no-1)*2+1
             if moved == "black":
                 move_index += 1
-        SlTrace.lg(f"cmd_goto_move: {move_no=}, {moved=}, {move_index=}")
+        SlTrace.lg(f"cmd_goto_move: {move_no=}, {moved=}, {move_index=}", "goto")
         return self.cgd_goto_move_index(move_index)
         
     def cgd_goto_move_index(self, move_index):    

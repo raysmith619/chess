@@ -434,7 +434,7 @@ class ChessCanvasPanel(CanvasPanel):
 
     def OnSize(self, e):
         #self.Update()
-        SlTrace.lg(f"\nOnSize paint count:{self.on_paint_count}")
+        SlTrace.lg(f"\nOnSize paint count:{self.on_paint_count}", "onsize")
         size = self.GetSize()
         SlTrace.lg(f"panel size: {size}")
         SlTrace.lg(f"{self.sq_size}")

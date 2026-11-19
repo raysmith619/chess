@@ -17,16 +17,17 @@ class FileScanning:
             default: ../errors
         :
         """
-        self.scan_nfile = 0
-        self.scan_ngame = 0
-        self.scan_nmove = 0
         self.scan_files(files)
         
     def scan_files(self, files=None):
         """ Scan list of files
+        Reset stats nfile, ngame, nmove.
         :files: list of files
             default: no files scanned
         """
+        self.scan_nfile = 0
+        self.scan_ngame = 0
+        self.scan_nmove = 0
         self.scan_files_iter = iter([])
         self.set_scanning(False)
         self.set_scanning_paused(False)
@@ -43,7 +44,7 @@ class FileScanning:
             e.g <fileno>: <basename> <gameno>:
             """
         st = f"{self.scan_nfile}: {os.path.basename(self.scan_file_name)}"
-        st += f" {self.scan_ngame}"
+        st += f" {self.scan_ngame}/{self.n_scan_games}"
         return st
         
     def scan_get_file(self):
@@ -65,12 +66,14 @@ class FileScanning:
             pgn_text = game_file.read()
             self.pgn_games = pgn.loads(pgn_text) # Returns a list of PGNGame
             self.scan_games_iter = iter(self.pgn_games)
+            self.n_scan_games = len(self.pgn_games)
         return file
 
     def set_scanning(self, scanning=True):
         """ Set scanning
         :scanning: scanning level default: True
         """
+        SlTrace.lg(f"set_scanning({scanning})")
         self._is_scanning = scanning
         
     def is_scanning(self):
@@ -169,7 +172,6 @@ if __name__ == '__main__':
     nfile = 0
     ngame = 0
     show = ["file", "game", "move"]
-    #show = ["file"]
 
     def test_file_game_move():
         SlTrace.lg("Test get_file get_game get_move")
@@ -179,7 +181,7 @@ if __name__ == '__main__':
         while True:
             file_name = fs.scan_get_file()
             if file_name is None:
-                SlTrace.lg("End of files")
+                SlTrace.lg("End of files", "fs")
                 break
             
             nfile += 1
@@ -208,7 +210,6 @@ if __name__ == '__main__':
 
         SlTrace.lg(f"{nfile} files  {ngame}  games  {nmove} moves")                
             
-    test_file_game_move()
 
 
     nfile = 0
@@ -240,7 +241,40 @@ if __name__ == '__main__':
 
         SlTrace.lg(f"{nfile} files  {ngame}  games  {nmove} moves")                
             
-    test_next_move()
                 
-    
+
+    def test_file_game():
+        SlTrace.lg("Test get_file get_game")
+        nfile = 0
+        ngame = 0
+        nmove = 0
+        while True:
+            file_name = fs.scan_get_file()
+            if file_name is None:
+                SlTrace.lg("End of files", "fs")
+                break
+            
+            nfile += 1
+            if "file" in show:
+                SlTrace.lg(f"{os.path.basename(file_name)}"
+                           f" {fs.scan_nfile: } {file_name}")
+            while True:
+                game = fs.scan_get_game()
+                if game is None:
+                    SlTrace.lg(f"End of File {fs.scan_ngame} games", "fs")
+                    break
+                
+                ngame += 1
+                if "game" in show:
+                    SlTrace.lg(f"{os.path.basename(file_name)} {fs.scan_nfile: }"
+                            f" {fs.scan_ngame}: {game.white} vs {game.black}")
+
+        SlTrace.lg(f"{nfile} files  {ngame} games")
+        
+    SlTrace.clearFlags()
+    show = ["file", "game"]
+    show = ["file"]                    
+    #test_file_game_move()
+    #test_next_move()
+    test_file_game()
         

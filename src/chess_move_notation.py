@@ -314,13 +314,15 @@ class ChessMoveNotation:
                               piece_choice=self.piece_choice,
                               dest_sq=self.dest_sq)
         if sq is None:
-            return self.err_add(f"Can't find orig_sq,"
-                                f" {self.get_move_no()}."
-                                f" spec={self.spec}"
-                                f" with piece = {self.piece},"
-                                f" {self.cm.to_move = },"
-                              f" piece_choice={self.piece_choice},"
-                              f" dest_sq={self.dest_sq}")
+            err_msg = (f"Can't find orig_sq,"
+                                f"\n {self.get_move_no()}."
+                                f"\n spec={self.spec}"
+                                f"\n with piece = {self.piece},"
+                                f"\n {self.cm.to_move = },"
+                              f"\n piece_choice={self.piece_choice},"
+                              f"\n dest_sq={self.dest_sq}")
+            return err_msg
+        
         self.orig_sq = sq
         return None
          

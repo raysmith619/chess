@@ -112,7 +112,7 @@ class ChessboardStack:
         """
         # looking before the make_move update
         cb = self.get_bd(back=back)
-        cm = cb.get_move()  # ChessSaveUnit
+        cm = cb.get_move() if cb is not None else None  # ChessSaveUnit
         if cm is not None:
             move_spec = cm.spec
             move_no = cm.get_move_no()
